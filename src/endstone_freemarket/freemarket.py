@@ -36,7 +36,7 @@ class freemarket(Plugin):
 
     def on_enable(self) -> None:
         self.logger.info("on_enable is called!")
-        self.logger.info(f"自由市场贸易插件已启用! 版本0.0.4dev4")
+        self.logger.info(f"自由市场贸易插件已启用! 版本0.0.4dev5")
         self.last_command_time = 0  # 记录上次执行命令的时间
         # 监听事件
         self.register_events(self)
@@ -305,8 +305,14 @@ class freemarket(Plugin):
         with open(marketdata, "r",encoding='utf-8') as f:
             data = json.load(f)
 
-        # 删除指定商品
-        data[playername] = [item for item in data[playername] if item["goodsname"] != goodsname]
+        player_goods = data[playername]
+        
+        # 只移除第一个匹配的商品
+        for i, item in enumerate(player_goods):
+            if item["goodsname"] == goodsname:
+                del player_goods[i]
+                msg = f"玩家 {playername} 的商品 {goodsname} 已下架"
+                break
         
         if not data[playername]:  # 如果删除后列表为空，移除玩家数据
             del data[playername]
@@ -474,7 +480,6 @@ class freemarket(Plugin):
                         items = account_info_msg["items"]
                         all_item_info = ""
                         if items:
-                            print("拥有的物品:")
                             for item in items:
                                 item_info = f" - {item['name']} {item['num']} 单位个\n"
                                 all_item_info += item_info
@@ -559,10 +564,10 @@ class freemarket(Plugin):
                                             buyer = sender.name
                                             # 使用货币付款
                                             if needname == "money" and neednum <= self.get_account_info(buyer)["money"]:
-                                                print(goodsname, goodsnum, needname, neednum, tips)
+                                                #print(goodsname, goodsnum, needname, neednum, tips)
                                                 # 买家扣款
                                                 action = "less"
-                                                print(self.change_money(buyer, action, neednum))
+                                                #print(self.change_money(buyer, action, neednum))
                                                 # 将货物给买家
                                                 self.server.dispatch_command(CommandSenderWrapper(self.server.command_sender), f'give "{sender.name}" {goodsname} {goodsnum}')
                                                 sender.send_message(f"{ColorFormat.YELLOW}§l付款成功")
@@ -578,12 +583,12 @@ class freemarket(Plugin):
                                                     self.server.get_player(playername).send_message(f"{ColorFormat.YELLOW}§l玩家{sender.name}已购买了您的商品,请查看您的账户")
                                             # 使用其它物品付款
                                             elif self.check_shopping(buyer, needname, neednum) == True and not needname == "money":
-                                                print(goodsname, goodsnum, needname, neednum)
+                                                #print(goodsname, goodsnum, needname, neednum)
                                                 # 买家扣款
                                                 self.server.dispatch_command(CommandSenderWrapper(self.server.command_sender), f'clear "{sender.name}" {needname} 0 {neednum}')
                                                 # 将货物给买家
                                                 self.server.dispatch_command(CommandSenderWrapper(self.server.command_sender), f'give "{sender.name}" {goodsname} {goodsnum}')
-                                                self.server.broadcast_message(f"{ColorFormat.YELLOW}[市场推广] 商家【{username}】的商品【{tips}】已售空")
+                                                self.server.broadcast_message(f"§6§l[市场推广] §r§l商家【{username}】的商品【{tips}】已售空")
                                                 # 将货款打到卖家账户上
                                                 if self.change_other_money(playername, action="add", item_name=needname, num=neednum) == True:
                                                     sender.send_message(f"{ColorFormat.YELLOW}§l付款成功")
@@ -601,7 +606,7 @@ class freemarket(Plugin):
                                         self.server.get_player(sender.name).send_form(ModalForm(
                                             title=f"{ColorFormat.DARK_PURPLE}§l购买界面菜单",
                                             controls=[
-                                                Label(text=f"§l§o§b店铺名:{username}的小店\n\n" + f"{ColorFormat.YELLOW}§l您将要购买的商品为 '{tips}'\n商家实名认证: {playername}\n物品ID为{goodsname}\n数量为 {goodsnum}\n价格为{needname} {neednum}单位.\n点击提交按钮确认交易,关闭窗口放弃交易\n\n交易提示:\nminecraft:diamond为钻石\nminecraft:emerald为绿宝石\nminecraft:gold_ingot为金锭\nminecraft:iron_ingot为铁锭\nmoney为{moneyname}(服务器货币)\n请勿交易各种附魔书、各种药水、不祥之瓶、附魔武器装备、药水箭、烟火及焰火炸药等带有特殊属性的物品,否则将导致属性丢失")
+                                                Label(text=f"§l§o§b店铺名:{username}的小店\n\n" + f"{ColorFormat.YELLOW}§l您将要购买的商品为 '{tips}'\n商家实名认证: {playername}\n物品ID为{goodsname}\n数量为 {goodsnum}\n价格为{needname} {neednum}单位.\n点击提交按钮确认交易,关闭窗口放弃交易\n\n交易提示:\nminecraft:diamond为钻石\nminecraft:emerald为绿宝石\nminecraft:gold_ingot为金锭\nminecraft:iron_ingot为铁锭\nmoney为{moneyname}(服务器货币)\n请勿交易各种附魔书、各种药水、不祥之瓶、附魔武器装备、药水箭、烟火及焰火炸药等带有特殊属性的物品,否则将导致属性丢失\n确保物品栏没有与货币物品同类且包含在上述禁止列表的物品,否则可能会被收错造成损失")
                                             ],
                                             on_submit=buy_sub
                                         ))
@@ -683,9 +688,9 @@ class freemarket(Plugin):
                 def add_sub(sender, json_str):
                     tips = json.loads(json_str)[1]
                     sender.send_message(self.add_goods(seller, goodsname, goodsnum, needname, neednum, tips))
-                    self.server.dispatch_command(CommandSenderWrapper(self.server.command_sender), f'clear "{sender.name}" {goodsname} 0 {goodsnum}')
+                    self.server.dispatch_command(CommandSenderWrapper(self.server.command_sender), f'clear "{sender.name}" {goodsname} -1 {goodsnum}')
                     username = self.get_account_info(sender.name)["username"]
-                    self.server.broadcast_message(f"{ColorFormat.YELLOW}[市场推广] 商家【{username}】上架了商品【{tips}】")
+                    self.server.broadcast_message(f"§6§l[市场推广] §r§l商家【{username}】上架了商品【{tips}】")
                     
 
                 # 创建新的 on_submit 回调函数，避免与外部函数冲突
@@ -693,7 +698,7 @@ class freemarket(Plugin):
                     form = ModalForm(
                         title="§4§l上架商品界面菜单",
                         controls=[
-                            Label(text=f"{ColorFormat.YELLOW}§l您将要上架的商品为 {goodsname} 数量为 {goodsnum},价格为{needname} {neednum}单位.\n点击提交按钮确认交易,关闭窗口放弃交易\n\n上架提示:\n由于商品ID为游戏内的物品ID,玩家很难第一时间看懂商品名称,请在下方的输入框内输入商品名称和价格,以便顺利交易\n请勿交易各种附魔书、各种药水、不祥之瓶、附魔武器装备、药水箭、烟火及焰火炸药等带有特殊属性的物品,否则将导致属性丢失"),
+                            Label(text=f"{ColorFormat.YELLOW}§l您将要上架的商品为 {goodsname} 数量为 {goodsnum},价格为{needname} {neednum}单位.\n点击提交按钮确认交易,关闭窗口放弃交易\n\n上架提示:\n由于商品ID为游戏内的物品ID,玩家很难第一时间看懂商品名称,请在下方的输入框内输入商品名称和价格,以便顺利交易\n请勿交易各种附魔书、各种药水、不祥之瓶、附魔武器装备、药水箭、烟火及焰火炸药等带有特殊属性的物品,否则将导致属性丢失\n确保物品栏没有与上架物品同类且包含在上述禁止列表的物品,否则可能会被收错造成损失"),
                             TextInput(label=f"{ColorFormat.YELLOW}§l请输入商品信息", default_value="该商家很懒,没有留下商品信息")
                         ],
                         on_submit=add_sub
@@ -725,7 +730,7 @@ class freemarket(Plugin):
                     # 调用函数下架商品
                     self.del_goods(sender.name,goodsname)
                     sender.send_message(f"{ColorFormat.YELLOW}§l您的商品{goodsname}已下架并退还")
-                    self.server.broadcast_message(f"{ColorFormat.YELLOW}[市场推广] 商家【{self.get_account_info(sender.name)["username"]}】下架了商品【{tips}】")
+                    #self.server.broadcast_message(f"{ColorFormat.YELLOW}[市场推广] 商家【{self.get_account_info(sender.name)["username"]}】下架了商品【{tips}】")
                 def on_click(sender):
                     if self.testuser(sender.name) == False:
                         sender.send_error_message(f"§l您还没有注册服务器交易账户,请点击账户信息注册")
