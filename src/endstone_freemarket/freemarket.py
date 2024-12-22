@@ -567,7 +567,7 @@ class freemarket(Plugin):
                                                 #print(goodsname, goodsnum, needname, neednum, tips)
                                                 # 买家扣款
                                                 action = "less"
-                                                #print(self.change_money(buyer, action, neednum))
+                                                self.change_money(buyer, action, neednum)
                                                 # 将货物给买家
                                                 self.server.dispatch_command(CommandSenderWrapper(self.server.command_sender), f'give "{sender.name}" {goodsname} {goodsnum}')
                                                 sender.send_message(f"{ColorFormat.YELLOW}§l付款成功")
