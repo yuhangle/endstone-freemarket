@@ -25,7 +25,7 @@ if not os.path.exists(marketdata):
     with open(marketdata, 'w',encoding='utf-8') as file:
         json.dump({}, file)
 # 定义货币名
-moneyname = "信用点"
+moneyname = "数字钻石币"
 
 
 class freemarket(Plugin):
@@ -36,7 +36,7 @@ class freemarket(Plugin):
 
     def on_enable(self) -> None:
         self.logger.info("on_enable is called!")
-        self.logger.info(f"自由市场贸易插件已启用! 版本0.0.4dev5")
+        self.logger.info(f"{ColorFormat.YELLOW}自由市场贸易插件已启用! 版本0.0.5")
         self.last_command_time = 0  # 记录上次执行命令的时间
         # 监听事件
         self.register_events(self)
