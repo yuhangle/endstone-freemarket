@@ -489,7 +489,8 @@ class freemarket(Plugin):
                         self.server.get_player(sender.name).send_form(ActionForm(
                             title=f"§l§5{sender.name}的用户信息",
                             content=f"§l§o§b用户名: {username}\n" + f"§l§o§b账户余额: {money}\n" + f"§l§o§b待提现货款:\n {all_item_info}",
-                            buttons=[rename_button,get_sell_item_button]
+                            buttons=[rename_button,get_sell_item_button],
+                            on_close=run_command(com="market")
                             )
                         )
                     else:
@@ -528,7 +529,7 @@ class freemarket(Plugin):
                         for item in items:
                             item_info = f" - {item['name']}: {item['num']} 单位个\n"
                             all_item_info += item_info
-                        self.server.get_player(sender.name).send_form(ModalForm(title="§4§l提现界面菜单",controls=[Label(text=f"{ColorFormat.YELLOW}§l您的账户已收款:\n{all_item_info}\n点击下方按钮全部提现至您的物品栏中\n\n提现提示:\nminecraft:diamond为钻石\nminecraft:emerald为绿宝石\nminecraft:gold_ingot为金锭\nminecraft:iron_ingot为铁锭\nmoney为{moneyname}(服务器货币)")],on_submit=get_sell_item_sub))
+                        self.server.get_player(sender.name).send_form(ModalForm(title="§4§l提现界面菜单",controls=[Label(text=f"{ColorFormat.YELLOW}§l您的账户已收款:\n{all_item_info}\n点击下方按钮全部提现至您的物品栏中\n\n提现提示:\nminecraft:diamond为钻石\nminecraft:emerald为绿宝石\nminecraft:gold_ingot为金锭\nminecraft:iron_ingot为铁锭\nmoney为{moneyname}(服务器货币)")],on_submit=get_sell_item_sub,on_close=run_command(com="market")))
                     else:
                         sender.send_error_message("您的账户暂无可提现的物品")
                         
@@ -539,6 +540,7 @@ class freemarket(Plugin):
                 def on_click(sender):
                     form = ActionForm(
                         title=f"{ColorFormat.DARK_PURPLE}§l交易市场",
+                        on_close=run_command(com="market")
                     )
                     with open(marketdata, "r", encoding='utf-8') as f:
                         goodsdata = json.load(f)
@@ -608,7 +610,8 @@ class freemarket(Plugin):
                                             controls=[
                                                 Label(text=f"§l§o§b店铺名:{username}的小店\n\n" + f"{ColorFormat.YELLOW}§l您将要购买的商品为 '{tips}'\n§r§l商家实名认证: {playername}\n§r§l物品ID为{goodsname}\n数量为 {goodsnum}\n价格为{needname} {neednum}单位.\n点击提交按钮确认交易,关闭窗口放弃交易\n\n交易提示:\nminecraft:diamond为钻石\nminecraft:emerald为绿宝石\nminecraft:gold_ingot为金锭\nminecraft:iron_ingot为铁锭\nmoney为{moneyname}(服务器货币)\n请勿交易各种附魔书、写字了的书、各种药水、不祥之瓶、附魔武器装备、药水箭、烟火及焰火炸药、带物品的潜影盒等带有特殊属性(NBT标签)的物品,否则将导致属性丢失\n确保物品栏没有与货币物品同类且包含在上述禁止列表的物品,否则可能会被收错造成损失")
                                             ],
-                                            on_submit=buy_sub
+                                            on_submit=buy_sub,
+                                            on_close=market_menu()
                                         ))
 
                                     open_buy_sub(sender)
@@ -622,7 +625,9 @@ class freemarket(Plugin):
                                 icon="textures/ui/sidebar_icons/Minions_packicon_0",
                                 on_click=create_callback(playername, username, goodsname, goodsnum, tips, needname, neednum)
                             )
-                    
+                    if self.testuser(sender.name) == False:
+                        sender.send_error_message(f"§l您还没有注册服务器交易账户,请点击账户信息注册")
+                        return
                     self.server.get_player(sender.name).send_form(form)
                 
                 return on_click
@@ -641,7 +646,8 @@ class freemarket(Plugin):
                             TextInput(label="§l请输入价格(填阿拉伯数字)")
                             #Slider(label="§l选择结算货币数量(价格)",min=1,max=114,step=1)
                         ],
-                        on_submit=open_add_sub
+                        on_submit=open_add_sub,
+                        on_close=run_command(com="market")
                     )
                     
                     if self.testuser(sender.name) == False:
@@ -709,7 +715,8 @@ class freemarket(Plugin):
                             Label(text=f"{ColorFormat.YELLOW}§l您将要上架的商品为 {goodsname} 数量为 {goodsnum},价格为{needname} {neednum}单位.\n点击提交按钮确认交易,关闭窗口放弃交易\n\n上架提示:\n由于商品ID为游戏内的物品ID,玩家很难第一时间看懂商品名称,请在下方的输入框内输入商品名称和价格,以便顺利交易\n请勿交易各种附魔书、写字了的书、各种药水、不祥之瓶、附魔武器装备、药水箭、烟火及焰火炸药、带物品的潜影盒等带有特殊属性(NBT标签)的物品,否则将导致属性丢失\n确保物品栏没有与上架物品同类且包含在上述禁止列表的物品,否则可能会被收错造成损失"),
                             TextInput(label=f"{ColorFormat.YELLOW}§l请输入商品信息", default_value="该商家很懒,没有留下商品信息")
                         ],
-                        on_submit=add_sub
+                        on_submit=add_sub,
+                        on_close=run_command(com="market")
                     )
                     self.server.get_player(sender.name).send_form(form)
 
@@ -761,10 +768,17 @@ class freemarket(Plugin):
                                 #Label(text=f"{ColorFormat.YELLOW}§l您目前有'{self.get_goods_info(sender.name)["tips"]}' 物品ID为{self.get_goods_info(sender.name)["goodsname"]} {self.get_goods_info(sender.name)["goodsnum"]}单位在卖\n是否下架并退还该商品?点击下方按钮确认下架"),
                                 Dropdown(label="§l选择您要下架的商品", options=options)
                             ],
-                            on_submit=back_goods
+                            on_submit=back_goods,
+                            on_close=run_command(com="market")
                         )
                         self.server.get_player(sender.name).send_form(form)
                 return on_click
+            
+            # 运行命令
+            def run_command(com):
+                def com_on_click(sender):
+                    sender.perform_command(com)
+                return com_on_click
             
             # 账户信息按钮
             button_account_info = ActionForm.Button(text="§l§5账户信息",icon="textures/ui/icon_steve",on_click=account_info())

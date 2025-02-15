@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "endstone-freemarket"
-version = "0.0.5"
+version = "0.0.6dev1"
 description = "在您的endstone服务器中加入自由市场经济！"
 authors = [
     { name = "yuhang", email = "keepsecret@nothing.mc" },
