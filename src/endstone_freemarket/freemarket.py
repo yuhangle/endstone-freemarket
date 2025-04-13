@@ -336,15 +336,18 @@ class freemarket(Plugin):
 
         # 遍历玩家的商品列表并构造消息
         goods_list = []
-        for item in data[playername]:
-            goods_info = {
-                "goodsname": item.get("goodsname"),
-                "goodsnum": item.get("goodsnum"),
-                "needname": item.get("needname"),
-                "neednum": item.get("neednum"),
-                "tips": item.get("tips")
-            }
-            goods_list.append(goods_info)
+        try:
+            for item in data[playername]:
+                goods_info = {
+                    "goodsname": item.get("goodsname"),
+                    "goodsnum": item.get("goodsnum"),
+                    "needname": item.get("needname"),
+                    "neednum": item.get("neednum"),
+                    "tips": item.get("tips")
+                }
+                goods_list.append(goods_info)
+        except:
+            goods_list = []
             
         return goods_list
     # 检查买家是否具有购买条件的函数
@@ -567,6 +570,13 @@ class freemarket(Plugin):
                                             # 使用货币付款
                                             if needname == "money" and neednum <= self.get_account_info(buyer)["money"]:
                                                 #print(goodsname, goodsnum, needname, neednum, tips)
+                                                goods_status = 0
+                                                for goods in self.get_goods_info(playername):
+                                                    if goodsname == goods['goodsname']:
+                                                        goods_status = 1
+                                                if goods_status == 0:
+                                                    sender.send_error_message("很遗憾,商品已售罄,交易失败")
+                                                    return
                                                 # 买家扣款
                                                 action = "less"
                                                 self.change_money(buyer, action, neednum)
@@ -586,6 +596,13 @@ class freemarket(Plugin):
                                             # 使用其它物品付款
                                             elif self.check_shopping(buyer, needname, neednum) == True and not needname == "money":
                                                 #print(goodsname, goodsnum, needname, neednum)
+                                                goods_status = 0
+                                                for goods in self.get_goods_info(playername):
+                                                    if goodsname == goods['goodsname']:
+                                                        goods_status = 1
+                                                if goods_status == 0:
+                                                    sender.send_error_message("很遗憾,商品已售罄,交易失败")
+                                                    return
                                                 # 买家扣款
                                                 self.server.dispatch_command(CommandSenderWrapper(self.server.command_sender), f'clear "{sender.name}" {needname} 0 {neednum}')
                                                 # 将货物给买家
@@ -675,23 +692,24 @@ class freemarket(Plugin):
 
                 # 获取商品信息
                 goods_info_data = json.loads(json_str)
+                #print(goods_info_data)
 
                 # 当选择自定义时赋值为自定义值
-                if goods_info_data[1] == 5:
-                    needname = goods_info_data[2]
+                if goods_info_data[0] == 5:
+                    needname = goods_info_data[1]
                 else:
-                    if goods_info_data[1] == 0:
+                    if goods_info_data[0] == 0:
                         needname = "minecraft:diamond"
-                    elif goods_info_data[1] == 1:
+                    elif goods_info_data[0] == 1:
                         needname = "minecraft:emerald"
-                    elif goods_info_data[1] == 2:
+                    elif goods_info_data[0] == 2:
                         needname = "minecraft:gold_ingot"
-                    elif goods_info_data[1] == 3:
+                    elif goods_info_data[0] == 3:
                         needname = "minecraft:iron_ingot"
-                    elif goods_info_data[1] == 4:
+                    elif goods_info_data[0] == 4:
                         needname = "money"
                 try:
-                    neednum = int(goods_info_data[3])
+                    neednum = int(goods_info_data[2])
                 except:
                     self.server.get_player(sender.name).send_error_message("你输入的价格不符合规范!")
                     return
@@ -700,7 +718,7 @@ class freemarket(Plugin):
                     return
 
                 def add_sub(sender, json_str):
-                    tips = json.loads(json_str)[1]
+                    tips = json.loads(json_str)[0]
                     sender.send_message(self.add_goods(seller, goodsname, goodsnum, needname, neednum, tips))
                     self.server.dispatch_command(CommandSenderWrapper(self.server.command_sender), f'clear "{sender.name}" {goodsname} -1 {goodsnum}')
                     username = self.get_account_info(sender.name)["username"]
