@@ -7,7 +7,7 @@
 
 Market_Action::Market_Action(DataBase database) : Database(std::move(database)) {}
 
-int Market_Action::goods_generate_id() {
+int Market_Action::goods_generate_id() const {
     auto latest_id = Database.getLatestGid();
     if (latest_id == -1) {
         cout << "商品号生成异常" << endl;
@@ -17,7 +17,7 @@ int Market_Action::goods_generate_id() {
     }
 }
 
-int Market_Action::comment_generate_id() {
+int Market_Action::comment_generate_id() const {
     auto latest_id = Database.getLatestCommentId();
     if (latest_id == -1) {
         cout << "评论号生成异常" << endl;
@@ -93,12 +93,11 @@ string Market_Action::VectorTimeHuman(const std::vector<int>& time) {
 }
 
 pair<bool, string> Market_Action::user_add(const std::string &uuid, const std::string &playername,
-                                           const std::string &username, const std::string &avatar,const std::string& item, int money) {
+                                           const std::string &username, const std::string &avatar,const std::string& item, int money) const {
     vector<map<string,string>> result;
     Database.getUser(uuid,result);
     if (result.empty()) {
-        auto return_status = Database.addUser(uuid,playername,username,avatar,item,money);
-        if (return_status) {
+        if (Database.addUser(uuid,playername,username,avatar,item,money)) {
             return {false,"Register failed"};
         } else {
             return {true,"Register successfully"};
@@ -108,7 +107,7 @@ pair<bool, string> Market_Action::user_add(const std::string &uuid, const std::s
     }
 }
 
-Market_Action::User_data Market_Action::user_get(const std::string &uuid) {
+Market_Action::User_data Market_Action::user_get(const std::string &uuid) const {
     vector<map<string,string>> result;
     Database.getUser(uuid,result);
     if (result.empty()) {
@@ -120,7 +119,7 @@ Market_Action::User_data Market_Action::user_get(const std::string &uuid) {
     }
 }
 
-pair<bool, string> Market_Action::user_del(const std::string &uuid) {
+pair<bool, string> Market_Action::user_del(const std::string &uuid) const {
     //删除玩家
     vector<map<string,string>> result;
     Database.getUser(uuid,result);
@@ -135,15 +134,14 @@ pair<bool, string> Market_Action::user_del(const std::string &uuid) {
     }
 }
 
-bool Market_Action::user_exist(const std::string &uuid) {
+bool Market_Action::user_exist(const std::string &uuid) const {
     //用户检测
     return Database.isValueExists("USER","uuid",uuid);
 }
 
-pair<bool, string> Market_Action::user_change_avatar(const std::string &uuid, const std::string &avatar) {
+pair<bool, string> Market_Action::user_change_avatar(const std::string &uuid, const std::string &avatar) const {
     if (user_exist(uuid)) {
-        auto status = Database.updateValue("USER","avatar",avatar,"uuid",uuid);
-        if (status) {
+        if (Database.updateValue("USER","avatar",avatar,"uuid",uuid)) {
             return {true,"Change successfully"};
         } else {
             return {false,"Change failed"};
@@ -153,10 +151,9 @@ pair<bool, string> Market_Action::user_change_avatar(const std::string &uuid, co
     }
 }
 
-pair<bool, string> Market_Action::user_rename(const std::string &uuid, const std::string &name) {
+pair<bool, string> Market_Action::user_rename(const std::string &uuid, const std::string &name) const {
     if (user_exist(uuid)) {
-        auto status = Database.updateValue("USER","username",name,"uuid",uuid);
-        if (status) {
+        if (Database.updateValue("USER","username",name,"uuid",uuid)) {
             return {true,"Change successfully"};
         } else {
             return {false,"Change failed"};
@@ -166,10 +163,9 @@ pair<bool, string> Market_Action::user_rename(const std::string &uuid, const std
     }
 }
 
-pair<bool, string> Market_Action::user_money(const std::string &uuid, int money) {
+pair<bool, string> Market_Action::user_money(const std::string &uuid, int money) const {
     if (user_exist(uuid)) {
-        auto status = Database.updateValue("USER","money",to_string(money),"uuid",uuid);
-        if (status) {
+        if (Database.updateValue("USER","money",to_string(money),"uuid",uuid)) {
             return {true,"Change successfully"};
         } else {
             return {false,"Change failed"};
@@ -179,7 +175,7 @@ pair<bool, string> Market_Action::user_money(const std::string &uuid, int money)
     }
 }
 
-Market_Action::User_data Market_Action::user_get_by_playername(const std::string &playername) {
+Market_Action::User_data Market_Action::user_get_by_playername(const std::string &playername) const {
     vector<map<string,string>> result;
     Database.getUser_by_playername(playername,result);
     if (result.empty()) {
@@ -191,7 +187,7 @@ Market_Action::User_data Market_Action::user_get_by_playername(const std::string
     }
 }
 
-bool Market_Action::user_add_item(const std::string &uuid, const std::string &item) {
+bool Market_Action::user_add_item(const std::string &uuid, const std::string &item) const {
     if (user_exist(uuid)) {
         auto user_data = user_get(uuid);
         if (user_data.item.empty()) {
@@ -205,7 +201,7 @@ bool Market_Action::user_add_item(const std::string &uuid, const std::string &it
     return false;
 }
 
-bool Market_Action::user_clear_item(const std::string &uuid) {
+bool Market_Action::user_clear_item(const std::string &uuid) const {
     if (user_exist(uuid)) {
         return Database.updateValue("USER","item","","uuid",uuid);
     } else {
@@ -213,7 +209,7 @@ bool Market_Action::user_clear_item(const std::string &uuid) {
     }
 }
 
-string Market_Action::GetUsername(const std::string &uuid) {
+string Market_Action::GetUsername(const std::string &uuid) const {
     auto user_data = user_get(uuid);
     if (user_data.status) {
         return user_data.username;
@@ -225,20 +221,19 @@ string Market_Action::GetUsername(const std::string &uuid) {
 //商品操作
 pair<bool, string> Market_Action::goods_add(const std::string &uuid, const std::string &name, const std::string &text,
                                            const std::string &item, const std::string &data, const std::string &image,
-                                           const int price, const std::string &money_type, const std::string &tag) {
+                                           const int price, const std::string &money_type, const std::string &tag) const {
     int gid = goods_generate_id();
     if (gid == -1){
         return {false,"Goods ID error"};
     }
-    auto status = Database.addGoods(gid,uuid,name,text,item,data,image,price,money_type,tag);
-    if (status) {
+    if (Database.addGoods(gid,uuid,name,text,item,data,image,price,money_type,tag)) {
         return {false,"Add failed"};
     } else {
         return {true,"Add successfully"};
     }
 }
 
-Market_Action::Goods_data Market_Action::goods_get_by_gid(int gid) {
+Market_Action::Goods_data Market_Action::goods_get_by_gid(int gid) const {
     vector<map<string,string>> result;
     Database.getGoodsByGid(gid,result);
     if (result.empty()) {
@@ -250,11 +245,11 @@ Market_Action::Goods_data Market_Action::goods_get_by_gid(int gid) {
     }
 }
 
-bool Market_Action::goods_exist(const int gid) {
+bool Market_Action::goods_exist(const int gid) const {
     return Database.isValueExists("GOODS","gid",to_string(gid));
 }
 
-pair<bool,string> Market_Action::goods_del(const int gid) {
+pair<bool,string> Market_Action::goods_del(const int gid) const {
     if (!goods_exist(gid)) {
         return {false,"The goods not exists"};
     } else {
@@ -266,7 +261,7 @@ pair<bool,string> Market_Action::goods_del(const int gid) {
     }   
 }
 
-vector<Market_Action::Goods_data> Market_Action::goods_get_by_uuid(const string& uuid) {
+vector<Market_Action::Goods_data> Market_Action::goods_get_by_uuid(const string& uuid) const {
     if (!user_exist(uuid)) {
         return {};
     }
@@ -283,7 +278,7 @@ vector<Market_Action::Goods_data> Market_Action::goods_get_by_uuid(const string&
     return goods_data;
 }
 
-pair<bool, string> Market_Action::goods_del_by_uuid(const std::string &uuid) {
+pair<bool, string> Market_Action::goods_del_by_uuid(const std::string &uuid) const {
     auto goods_data = goods_get_by_uuid(uuid);
     if (goods_data.empty()) {
         return {false,"The player has not goods"};
@@ -305,7 +300,7 @@ pair<bool, string> Market_Action::goods_del_by_uuid(const std::string &uuid) {
     }
 }
 
-vector<Market_Action::Goods_data> Market_Action::goods_get_all() {
+vector<Market_Action::Goods_data> Market_Action::goods_get_all() const {
     vector<map<string,string>> result;
     Database.getAllGoods(result);
     if (result.empty()) {
@@ -319,12 +314,11 @@ vector<Market_Action::Goods_data> Market_Action::goods_get_all() {
     return goods_data;
 }
 
-pair<bool,string> Market_Action::goods_update(int gid,const string& name,const string& text,const string&image,const string& tag) {
+pair<bool,string> Market_Action::goods_update(int gid,const string& name,const string& text,const string&image,const string& tag) const {
     if (!goods_exist(gid)) {
         return {false,"Goods not exist"};
     }
-    auto status = Database.updateGoods(gid,name,text,image,tag);
-    if (status) {
+    if (Database.updateGoods(gid,name,text,image,tag)) {
         return {false,"Update failed"};
     } else {
         return {true,"Update successfully"};
@@ -332,20 +326,19 @@ pair<bool,string> Market_Action::goods_update(int gid,const string& name,const s
 }
 
 pair<bool, string> Market_Action::comment_add(const std::string &uuid, const string& seller,
-                                              const std::string &message) {
+                                              const std::string &message) const {
     auto cid = comment_generate_id();
     if (cid == -1) {
         return {false,"Comment ID error"};
     }
-    auto status = Database.addComment(cid,seller,uuid, getFormattedCurrentTime(),message);
-    if (status) {
+    if (Database.addComment(cid,seller,uuid, getFormattedCurrentTime(),message)) {
         return {false,"Comment failed"};
     } else {
         return {true,"Comment successfully"};
     }
 }
 
-Market_Action::Comment_data Market_Action::comment_get_by_cid(const int& cid) {
+Market_Action::Comment_data Market_Action::comment_get_by_cid(const int& cid) const {
     vector<map<string,string>> result;
     Database.getComment(cid,result);
     if (result.empty()) {
@@ -356,23 +349,22 @@ Market_Action::Comment_data Market_Action::comment_get_by_cid(const int& cid) {
     }
 }
 
-bool Market_Action::comment_exist(const int cid) {
+bool Market_Action::comment_exist(const int cid) const {
     return Database.isValueExists("COMMENT","cid",to_string(cid));
 }
 
-pair<bool, string> Market_Action::comment_del(int cid) {
+pair<bool, string> Market_Action::comment_del(int cid) const {
     if (!comment_exist(cid)) {
         return {false,"Comment not exists"};
     }
-    auto status = Database.deleteComment(cid);
-    if (status) {
+    if (Database.deleteComment(cid)) {
         return {false,"Delete failed"};
     } else {
         return {true,"Delete successfully"};
     }
 }
 
-vector<Market_Action::Comment_data> Market_Action::comment_get_by_seller(const std::string &uuid) {
+vector<Market_Action::Comment_data> Market_Action::comment_get_by_seller(const std::string &uuid) const {
     if (!user_exist(uuid)) {
         return {};
     }
@@ -389,7 +381,7 @@ vector<Market_Action::Comment_data> Market_Action::comment_get_by_seller(const s
     return comment_data;
 }
 
-pair<bool, string> Market_Action::comment_del_by_seller(const std::string &uuid) {
+pair<bool, string> Market_Action::comment_del_by_seller(const std::string &uuid) const {
     auto comment_data = comment_get_by_seller(uuid);
     if (comment_data.empty()) {
         return {false,"The seller has no user comments"};

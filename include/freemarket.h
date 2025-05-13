@@ -1,11 +1,14 @@
 //
 // Created by yuhang on 2025/4/13.
 //
+#ifndef FREEMARKET_H
+#define FREEMARKET_H
 
 #include <endstone/plugin/plugin.h>
 #include <endstone/inventory/meta/item_meta.h>
 #include <iostream>
 #include <fstream>
+#include <ranges>
 #include <string>
 #include <filesystem>
 #include "endstone/endstone.hpp"
@@ -16,10 +19,10 @@
 #include <endstone/form/action_form.h>
 #include <endstone/player.h>
 #include <endstone/form/modal_form.h>
-#include <endstone/player.h>
+//#include <endstone/player.h>
 #include <endstone/server.h>
 #include <endstone/event/player/player_interact_event.h>
-#include <endstone/event/server/broadcast_message_event.h>
+//#include <endstone/event/server/broadcast_message_event.h>
 
 using json = nlohmann::json;
 
@@ -28,17 +31,17 @@ const string db_file = "plugins/freemarket/data.db";
 const std::string config_path = "plugins/freemarket/config.json";
 const std::string umoney_file = "plugins/umoney/money.json";
 
-std::string money_config;
-int player_max_goods;
+inline std::string money_config;
+inline int player_max_goods;
 
 // 存储每个玩家的上次触发时间
-std::unordered_map<string, std::chrono::steady_clock::time_point> lastTriggerTime;
+inline std::unordered_map<string, std::chrono::steady_clock::time_point> lastTriggerTime;
 
 //初始化语言
-translate Tran;
+inline translate Tran;
 //初始化其它实例
-DataBase Database(db_file);
-Market_Action market(Database);
+inline DataBase Database(db_file);
+inline Market_Action market(Database);
 
 //meta数据
 struct Meta_data{
@@ -58,7 +61,7 @@ class FreeMarket : public endstone::Plugin {
 public:
 
     //数据目录和配置文件检查
-    void datafile_check() {
+    void datafile_check() const {
         json df_config = {
                 {"money", "freemarket"},
                 {"player_max_goods", 10}
@@ -95,7 +98,7 @@ public:
                 for (auto& [key, value] : df_config.items()) {
                     if (!loaded_config.contains(key)) {
                         loaded_config[key] = value;
-                        getLogger().info(Tran.getLocal("Config '{}' has update with default config"), key);
+                        getLogger().info(Tran.getLocal("Config '{}' has update with default config")+","+ key);
                         need_update = true;
                     }
                 }
@@ -114,10 +117,10 @@ public:
     }
 
     // 读取配置文件
-    json read_config() {
+    [[nodiscard]] json read_config() const {
         std::ifstream i(config_path);
-        json j;
         try {
+            json j;
             i >> j;
             return j;
         } catch (json::parse_error& ex) { // 捕获解析错误
@@ -132,7 +135,7 @@ public:
     //接入umoney
 
     //检查插件存在
-    bool umoney_check_exists() {
+    [[nodiscard]] bool umoney_check_exists() const {
         if (getServer().getPluginManager().getPlugin("umoney")) {
             return true;
         } else {
@@ -161,7 +164,7 @@ public:
         }
     }
     //更改玩家资金
-    bool umoney_change_player_money(const std::string& player_name, const int money) {
+    [[nodiscard]] bool umoney_change_player_money(const std::string& player_name, const int money) const {
         std::ifstream ifs(umoney_file);
         if (!ifs.is_open()) {
             std::cerr << "Error: Could not open file for reading: " << umoney_file << std::endl;
@@ -225,7 +228,6 @@ public:
     static Meta_data StringToItemMeta(const string& data) {
         auto vec = DataBase::splitString(data);
         std::optional<std::vector<std::string>> lore;
-        int damage;
         std::optional<string> display_name;
 
         string lore_str = vec[0];
@@ -236,7 +238,7 @@ public:
         if (vec[2] != "None") {
             display_name = vec[2];
         }
-        damage = DataBase::stringToInt(vec[1]);
+        int damage = DataBase::stringToInt(vec[1]);
         return Meta_data{lore,damage,display_name};
     }
 
@@ -301,7 +303,7 @@ public:
     }
 
     //获取玩家资产
-    static int get_player_money(endstone::Player& player) {
+    static int get_player_money(const endstone::Player& player) {
         int buyer_money;
         if (money_config == "freemarket") {
             auto buyer_data = market.user_get(player.getUniqueId().str());
@@ -317,7 +319,7 @@ public:
     }
 
     //通用转账系统
-    bool general_change_money(const string& uuid,const string& playername,int money) {
+    [[nodiscard]] bool general_change_money(const string& uuid,const string& playername,int money) const {
         if (money_config == "freemarket") {
             auto buyer_data = market.user_get(uuid);
             if (buyer_data.status) {
@@ -336,8 +338,7 @@ public:
         vector<pair<pair<string,int>,int>> items;
         int player_own_num = 0;
         for (int i = 0;i <= 35;i++) {
-            auto the_one = player.getInventory().getItem(i);
-            if (the_one) {
+            if (auto the_one = player.getInventory().getItem(i)) {
                 if (the_one->getType() == item_id) {
                     player_own_num += the_one->getAmount();
                     items.push_back({{the_one->getType(), the_one->getAmount()}, i});
@@ -380,7 +381,9 @@ public:
                     new_item.setType(the_item->getType());
                     new_item.setAmount(amount);
                     if (the_item->hasItemMeta()) {
-                        new_item.setItemMeta(the_item->getItemMeta().get());
+                        auto meta = the_item->getItemMeta();
+                        auto new_meta = meta->clone();
+                        new_item.setItemMeta(new_meta.get());
                     }
                     player.getInventory().setItem(slot_index,&new_item);
                     ItemData itemData;
@@ -407,7 +410,7 @@ public:
         auto now = std::chrono::steady_clock::now();
 
         // 查找玩家的上次触发时间
-        if (lastTriggerTime.find(playername) != lastTriggerTime.end()) {
+        if (lastTriggerTime.contains(playername)) {
             auto lastTime = lastTriggerTime[playername];
             auto elapsedTime = std::chrono::duration<double>(now - lastTime).count(); // 计算时间差
 
@@ -440,7 +443,7 @@ public:
         getLogger().info("onEnable is called");
         datafile_check();
         if (!DataBase::fileExists(db_file)) {
-            Database.init_database();
+            bool initStatus = Database.init_database();
             getLogger().info(endstone::ColorFormat::Yellow + Tran.getLocal("Database file not find,auto create"));
         }
         //进行一个配置文件的读取
@@ -471,6 +474,7 @@ public:
             money_config = "freemarket";
             player_max_goods = 10;
             getLogger().error(Tran.getLocal("Config file error!Use default config"));
+            getLogger().error(e.what());
         }
         registerEvent(&FreeMarket::onOpenMenu,*this);
         //显示启动消息
@@ -638,11 +642,11 @@ public:
         menu.addControl(label);
         menu.addControl(input);
         menu.addControl(dropdown);
-        menu.setOnSubmit([=](endstone::Player *p,const string& response)
+        menu.setOnSubmit([=](const endstone::Player *p,const string& response)
                          {
                              auto parsedResponse = json::parse(response);
-                             string username = parsedResponse[0];
-                             int avatar_index = parsedResponse[1];
+                             string username = parsedResponse[1];
+                             int avatar_index = parsedResponse[2];
                              string avatar;
                              if (avatar_index == 0) {
                                  avatar = "textures/ui/icon_steve";
@@ -655,8 +659,8 @@ public:
                              } else {
                                  avatar = "texture/ui/icon_steve";
                              }
-                             string command = "market register \"" + username + "\"" +" " + "\"" +avatar + "\"";
-                             p->performCommand(command);
+                             const string command = "market register \"" + username + "\"" +" " + "\"" +avatar + "\"";
+                             (void)p->performCommand(command);
                          });
 
         menu.setOnClose([=](endstone::Player* p){
@@ -809,8 +813,7 @@ public:
         vector<ItemData> quick_items;
         vector<string> quick_items_name;
         for (int i = 0;i <= 8;i++) {
-            auto one_item = player.getInventory().getItem(i);
-            if (one_item) {
+            if (auto one_item = player.getInventory().getItem(i)) {
                 auto meta = one_item->getItemMeta();
                 if (one_item->hasItemMeta()){
                     quick_items.push_back({one_item->getType(),one_item->getAmount(), Meta_data{meta->getLore(),meta->getDamage(),meta->getDisplayName()}});
@@ -964,8 +967,7 @@ public:
         if (goods_data.empty()) {
             menu.setContent(Tran.getLocal("No goods are currently for sale"));
         } else {
-            for (auto it = goods_data.rbegin(); it != goods_data.rend(); ++it) { // 使用反向迭代器
-                const auto& goods = *it;
+            for (auto & goods : std::ranges::reverse_view(goods_data)) { // 使用反向迭代器
                 menu.addButton(goods.name, goods.image, [=](endstone::Player* p) {
                     goods_view_menu(*p, goods);
                 });
@@ -998,7 +1000,6 @@ public:
         endstone::ActionForm menu;
         menu.setTitle(goods_data.name);
 
-        endstone::Button seller_home_page;
         endstone::Label goods_info;
         endstone::Label buyer_info;
         endstone::Button confirm_buy;
@@ -1016,6 +1017,7 @@ public:
         });
 
         if (seller_data.status) {
+            endstone::Button seller_home_page;
             seller_home_page.setText(Tran.getLocal("Seller homepage"));
             seller_home_page.setIcon(seller_data.avatar);
             seller_home_page.setOnClick([=](endstone::Player* p){
@@ -1053,28 +1055,28 @@ public:
                 //使用数字货币
                 if (goods_data.money_type == "money") {
                     //进行一个资产的判断
-                    int buyer_money = get_player_money(*p);
-                    if (buyer_money >= goods_data.price) {
-                        general_change_money(p->getUniqueId().str(),p->getName(),-goods_data.price);
+                    if (int buyer_money = get_player_money(*p); buyer_money >= goods_data.price) {
+                        (void)general_change_money(p->getUniqueId().str(),p->getName(),-goods_data.price);
                         auto itemData = BackItemData(goods_data.item,goods_data.data);
                         //构建ItemStack
                         endstone::ItemStack new_item;
-                        endstone::ItemMeta meta;
                         // 设置物品类型和数量
                         new_item.setType(itemData.item_id);
                         new_item.setAmount(itemData.item_num);
+                        auto meta_ptr = getServer().getItemFactory().getItemMeta(itemData.item_id);
+                        endstone::ItemMeta* meta = meta_ptr.get();
                         // 设置 ItemMeta 属性
-                        meta.setLore(itemData.item_meta->lore);
-                        meta.setDamage(itemData.item_meta->damage);
-                        meta.setDisplayName(itemData.item_meta->display_name);
+                        meta->setLore(itemData.item_meta->lore);
+                        meta->setDamage(itemData.item_meta->damage);
+                        meta->setDisplayName(itemData.item_meta->display_name);
                         // 将 meta 应用到 new_item
-                        new_item.setItemMeta(&meta);
+                        new_item.setItemMeta(nullptr);
+                        new_item.setItemMeta(meta);
                         // 将物品添加到玩家的背包
                         p->getInventory().addItem(new_item);
-                        market.goods_del(goods_data.gid);
-                        general_change_money(seller_data.uuid,seller_data.playername,goods_data.price);
-                        auto get_seller = getServer().getPlayer(seller_data.playername);
-                        if (get_seller) {
+                        auto delGoodsStatus = market.goods_del(goods_data.gid);
+                        (void)general_change_money(seller_data.uuid,seller_data.playername,goods_data.price);
+                        if (auto get_seller = getServer().getPlayer(seller_data.playername)) {
                             get_seller->sendMessage(Tran.getLocal("Your goods have been purchased. Transaction details: ")+"\n" + Tran.getLocal("Buyer: ") + p->getName() +"\n"+
                                                                 Tran.getLocal("Goods info: ") + goods_data.name);
                         }
@@ -1086,35 +1088,33 @@ public:
                 //使用实体货币
                 else {
                     auto itemData = BackItemData(goods_data.item,goods_data.data);
-                    vector<ItemData> cleared_itemData;
-                    bool status = check_player_inventory_and_clear(*p,goods_data.money_type,goods_data.price,cleared_itemData);
-                    if (status) {
+                    if (vector<ItemData> cleared_itemData; check_player_inventory_and_clear(*p,goods_data.money_type,goods_data.price,cleared_itemData)) {
                         //构建ItemStack
                         endstone::ItemStack new_item;
-                        endstone::ItemMeta meta;
                         // 设置物品类型和数量
                         new_item.setType(itemData.item_id);
                         new_item.setAmount(itemData.item_num);
+                        auto meta_ptr = getServer().getItemFactory().getItemMeta(itemData.item_id);
+                        endstone::ItemMeta* meta = meta_ptr.get();
                         // 设置 ItemMeta 属性
-                        meta.setLore(itemData.item_meta->lore);
-                        meta.setDamage(itemData.item_meta->damage);
-                        meta.setDisplayName(itemData.item_meta->display_name);
+                        meta->setLore(itemData.item_meta->lore);
+                        meta->setDamage(itemData.item_meta->damage);
+                        meta->setDisplayName(itemData.item_meta->display_name);
                         // 将 meta 应用到 new_item
-                        new_item.setItemMeta(&meta);
+                        new_item.setItemMeta(meta);
                         // 将物品添加到玩家的背包
                         p->getInventory().addItem(new_item);
                         //删除货品
-                        market.goods_del(goods_data.gid);
+                        auto delGoodsStatus = market.goods_del(goods_data.gid);
                         //通知卖家(如果在线)
-                        auto get_seller = getServer().getPlayer(seller_data.playername);
-                        if (get_seller) {
+                        if (auto get_seller = getServer().getPlayer(seller_data.playername)) {
                             get_seller->sendMessage(Tran.getLocal("Your goods have been purchased. Transaction details: ")+"\n" + Tran.getLocal("Buyer: ") + p->getName() +"\n"+
                                                     Tran.getLocal("Goods info: ") + goods_data.name);
                         }
                         //把物品打到商家帐上
                         for(const auto& one_item:cleared_itemData) {
                             string string_itemData = ItemDataToString(one_item);
-                            market.user_add_item(seller_data.uuid,string_itemData);
+                            auto addItemStatus = market.user_add_item(seller_data.uuid,string_itemData);
                         }
                         notice_menu(*p,Tran.getLocal("Successful purchase"),[this](endstone::Player& p) { this->main_menu(p);});
                     } else {
@@ -1134,7 +1134,7 @@ public:
 
     //货款提现菜单
     void get_item_to_player_menu(endstone::Player& player) {
-        auto user_all_item = UserItemRead(player.getUniqueId().str());
+        const auto user_all_item = UserItemRead(player.getUniqueId().str());
         if (user_all_item.empty()) {
             notice_menu(player,endstone::ColorFormat::Red+Tran.getLocal("You have no withdrawable payment"),[this](endstone::Player& p){ account_menu(p);});
             return;
@@ -1149,24 +1149,25 @@ public:
         context.setText(Tran.getLocal("Your payment: ") +"\n"+display_info);
         menu.setControls({context});
         menu.setOnSubmit([=](endstone::Player* p,const string& response){
-            auto update_user_items = UserItemRead(p->getUniqueId().str());
+            const auto update_user_items = UserItemRead(p->getUniqueId().str());
             for (const auto& one_user_item:update_user_items) {
                 endstone::ItemStack itemStack;
-                endstone::ItemMeta meta;
                 itemStack.setType(one_user_item.item_id);
                 itemStack.setAmount(one_user_item.item_num);
                 if (one_user_item.item_meta.has_value()) {
-                    auto meta_value = one_user_item.item_meta;
-                    meta.setLore(meta_value->lore);
-                    meta.setDamage(meta_value->damage);
-                    meta.setDisplayName(meta_value->display_name);
-                    itemStack.setItemMeta(&meta);
+                    auto meta_ptr = getServer().getItemFactory().getItemMeta(one_user_item.item_id);
+                    endstone::ItemMeta* meta = meta_ptr.get();
+                    const auto meta_value = one_user_item.item_meta;
+                    meta->setLore(meta_value->lore);
+                    meta->setDamage(meta_value->damage);
+                    meta->setDisplayName(meta_value->display_name);
+                    itemStack.setItemMeta(meta);
                     p->getInventory().addItem(itemStack);
                 } else {
                     p->getInventory().addItem(itemStack);
                 }
             }
-            market.user_clear_item(p->getUniqueId().str());
+            auto clearItemStatus = market.user_clear_item(p->getUniqueId().str());
             notice_menu(*p,Tran.getLocal("The withdrawal is complete"),[this](endstone::Player& p){ account_menu(p);});
         });
         menu.setOnClose([=](endstone::Player *p){
@@ -1247,14 +1248,14 @@ public:
                     if (status.first) {
                         auto itemData = BackItemData(goods_data.item,goods_data.data);
                         endstone::ItemStack itemStack;
-                        endstone::ItemMeta meta;
                         itemStack.setType(itemData.item_id);
                         itemStack.setAmount(itemData.item_num);
                         if (itemData.item_meta.has_value()) {
-                            meta.setLore(itemData.item_meta->lore);
-                            meta.setDamage(itemData.item_meta->damage);
-                            meta.setDisplayName(itemData.item_meta->display_name);
-                            itemStack.setItemMeta(&meta);
+                            endstone::ItemMeta* meta = nullptr;
+                            meta->setLore(itemData.item_meta->lore);
+                            meta->setDamage(itemData.item_meta->damage);
+                            meta->setDisplayName(itemData.item_meta->display_name);
+                            itemStack.setItemMeta(meta);
                         }
                         p->getInventory().addItem(itemStack);
                         notice_menu(*p,Tran.getLocal(status.second),[this](endstone::Player& p) { this->choose_manage_goods_menu(p);});
@@ -1430,7 +1431,7 @@ public:
         player.sendForm(menu);
     }
 
-    void onOpenMenu(endstone::PlayerInteractEvent& event) {
+    void onOpenMenu(const endstone::PlayerInteractEvent& event) {
         if (event.hasItem()) {
             if (event.getItem()->getType() != "minecraft:emerald") {
                 return;
@@ -1446,3 +1447,4 @@ public:
     //TODO
     //User comment seller menu
 };
+#endif

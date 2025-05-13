@@ -2,33 +2,30 @@
 // Created by yuhang on 2025/3/14.
 //
 
-#ifndef TERRITORY_TRANSLATE_H
-#define TERRITORY_TRANSLATE_H
+#ifndef FREEMARKET_TRANSLATE_H
+#define FREEMARKET_TRANSLATE_H
 
-#include <iostream>
 #include <fstream>
 #include <nlohmann/json.hpp>
 using namespace std;
 
 class translate {
 public:
+    const string langFile = "plugins/freemarket/lang.json";
     using json = nlohmann::json;
     json languageResource; // 存储从 lang.json 加载的语言资源
 
     // 构造函数中加载语言资源文件
-    translate() {
-        loadLanguage();
-    }
+    translate();
 
     // 加载语言资源文件
     pair<bool,string> loadLanguage() {
-        std::ifstream file("plugins/freemarket/lang.json");
-        if (file.is_open()) {
-            languageResource = json::parse(file);
-            file.close();
+        if (std::ifstream f(langFile); f.is_open()) {
+            languageResource = json::parse(f);
+            f.close();
             return {true,"lang.json is normal"};
         } else {
-            return {false,"you can download lang.json from github to change eparty plugin language"};
+            return {false,"you can download lang.json from github to change freemarket plugin language"};
         }
     }
 
@@ -41,4 +38,8 @@ public:
     }
 };
 
-#endif //TERRITORY_TRANSLATE_H
+inline translate::translate() {
+        loadLanguage();
+    }
+
+#endif //FREEMARKET_TRANSLATE_H

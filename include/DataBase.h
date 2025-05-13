@@ -2,8 +2,8 @@
 // Created by yuhang on 2025/3/25.
 //
 
-#ifndef EPARTY_DATABASE_H
-#define EPARTY_DATABASE_H
+#ifndef FREEMARKET_DATABASE_H
+#define FREEMARKET_DATABASE_H
 
 #include <iostream>
 #include <sqlite3.h>
@@ -28,7 +28,7 @@ public:
     }
 
     // 初始化数据库
-    int init_database() {
+    [[nodiscard]] int init_database() const {
         sqlite3* db;
         int rc = sqlite3_open(db_filename.c_str(), &db);
         if (rc) {
@@ -94,7 +94,7 @@ public:
     ///////////////////// 通用操作 /////////////////////
 
     // 通用执行 SQL 命令（用于添加、删除、修改操作）
-    int executeSQL(const std::string &sql) {
+    [[nodiscard]] int executeSQL(const std::string &sql) const {
         sqlite3* db;
         int rc = sqlite3_open(db_filename.c_str(), &db);
         if (rc) {
@@ -120,7 +120,7 @@ public:
         return 0;
     }
 
-    int querySQL(const std::string &sql, std::vector<std::map<std::string, std::string>> &result) {
+    int querySQL(const std::string &sql, std::vector<std::map<std::string, std::string>> &result) const {
         sqlite3* db;
         int rc = sqlite3_open(db_filename.c_str(), &db);
         if (rc) {
@@ -146,7 +146,7 @@ public:
         return 0;
     }
 
-    int querySQL_many(const std::string &sql, std::vector<std::map<std::string, std::string>> &result) {
+    int querySQL_many(const std::string &sql, std::vector<std::map<std::string, std::string>> &result) const {
         sqlite3* db;
         int rc = sqlite3_open(db_filename.c_str(), &db);
         if (rc) {
@@ -161,7 +161,7 @@ public:
         return rc;
     }
 
-    int updateSQL(const std::string &table, const std::string &set_clause, const std::string &where_clause) {
+    [[nodiscard]] int updateSQL(const std::string &table, const std::string &set_clause, const std::string &where_clause) const {
         sqlite3* db;
         int rc = sqlite3_open(db_filename.c_str(), &db);
         if (rc) {
@@ -181,7 +181,7 @@ public:
     }
 
     // 查找指定表中是否存在指定值
-    bool isValueExists(const std::string &tableName, const std::string &columnName, const std::string &value) {
+    [[nodiscard]] bool isValueExists(const std::string &tableName, const std::string &columnName, const std::string &value) const {
         sqlite3* db;
         int rc = sqlite3_open(db_filename.c_str(), &db); // 打开数据库
         if (rc) {
@@ -219,11 +219,11 @@ public:
     }
 
     // 修改指定表中的指定数据的指定值
-    bool updateValue(const std::string &tableName,
+    [[nodiscard]] bool updateValue(const std::string &tableName,
                      const std::string &targetColumn,
                      const std::string &newValue,
                      const std::string &conditionColumn,
-                     const std::string &conditionValue) {
+                     const std::string &conditionValue) const {
         sqlite3* db;
         int rc = sqlite3_open(db_filename.c_str(), &db); // 打开数据库
         if (rc) {
@@ -266,62 +266,62 @@ public:
 
     ///////////////////// USER 表操作 /////////////////////
 
-    int addUser(const std::string &uuid, const std::string &playername,
-                const std::string &username, const std::string &avatar,const std::string& item, const int money) {
+    [[nodiscard]] int addUser(const std::string &uuid, const std::string &playername,
+                const std::string &username, const std::string &avatar,const std::string& item, const int money) const {
         std::string sql = "INSERT INTO USER (uuid, playername, username, avatar, item, money) VALUES ('" +
                           uuid + "', '" + playername + "', '" + username + "', '" + avatar +
                           "',' " + item + "',"+ std::to_string(money) +");";
         return executeSQL(sql);
     }
 
-    int deleteUser(const std::string &uuid) {
+    [[nodiscard]] int deleteUser(const std::string &uuid) const {
         std::string sql = "DELETE FROM USER WHERE uuid = '" + uuid + "';";
         return executeSQL(sql);
     }
 
-    int updateUser(const std::string &uuid, const std::string &playername,
-                   const std::string &username, const std::string &avatar,const std::string& item, const int money) {
+    [[nodiscard]] int updateUser(const std::string &uuid, const std::string &playername,
+                   const std::string &username, const std::string &avatar,const std::string& item, const int money) const {
         std::string sql = "UPDATE USER SET playername = '" +
                           uuid + "', '" + playername + "', '" + username + "', '" + avatar +
                           "',' " + item + "',"+ std::to_string(money) +";";
         return executeSQL(sql);
     }
 
-    int getUser(const std::string &uuid, std::vector<std::map<std::string, std::string>> &result) {
+    int getUser(const std::string &uuid, std::vector<std::map<std::string, std::string>> &result) const {
         std::string sql = "SELECT * FROM USER WHERE uuid = '" + uuid + "';";
         return querySQL(sql, result);
     }
 
-    int getUser_by_playername(const std::string &playername, std::vector<std::map<std::string, std::string>> &result) {
+    int getUser_by_playername(const std::string &playername, std::vector<std::map<std::string, std::string>> &result) const {
         std::string sql = "SELECT * FROM USER WHERE playername = '" + playername + "';";
         return querySQL(sql, result);
     }
 
     ///////////////////// GOODS 表操作 /////////////////////
 
-    int addGoods(const int& gid,const std::string &uuid, const std::string &name, const std::string &text,
-                const std::string &item,const std::string &data,const std::string &image,const int price,const std::string &money_type,const std::string &tag) {
+    [[nodiscard]] int addGoods(const int& gid,const std::string &uuid, const std::string &name, const std::string &text,
+                const std::string &item,const std::string &data,const std::string &image,const int price,const std::string &money_type,const std::string &tag) const {
         std::string sql = "INSERT INTO GOODS (gid, uuid, name, text, item, data, image, price, money_type, tag) VALUES (" + std::to_string(gid) +",'" + uuid + "','" +
                           name + "', '" + text + "', '" + item + "','" + data + "','" + image + "'," + std::to_string(price) + ",'" + money_type + "','" + tag + "');";
         return executeSQL(sql);
     }
 
-    int deleteGoods(int gid) {
+    [[nodiscard]] int deleteGoods(int gid) const {
         std::string sql = "DELETE FROM GOODS WHERE gid = " + std::to_string(gid) + ";";
         return executeSQL(sql);
     }
 
-    int getGoodsByUuid(const std::string& uuid, std::vector<std::map<std::string, std::string>> &result) {
+    int getGoodsByUuid(const std::string& uuid, std::vector<std::map<std::string, std::string>> &result) const {
         std::string sql = "SELECT * FROM GOODS WHERE uuid = '" + uuid + "';";
         return querySQL_many(sql, result);
     }
 
-    int getGoodsByGid(const int& gid, std::vector<std::map<std::string, std::string>> &result) {
+    int getGoodsByGid(const int& gid, std::vector<std::map<std::string, std::string>> &result) const {
         std::string sql = "SELECT * FROM GOODS WHERE gid = " + std::to_string(gid) + ";";
         return querySQL_many(sql, result);
     }
 
-    int getAllGoods(std::vector<std::map<std::string, std::string>> &result) {
+    int getAllGoods(std::vector<std::map<std::string, std::string>> &result) const {
         // 构造 SQL 查询语句，从 GOODS 表中获取所有数据
         std::string sql = "SELECT * FROM GOODS;";
 
@@ -329,7 +329,7 @@ public:
         return querySQL_many(sql, result);
     }
 
-    int updateGoods(const int& gid, const std::string &name, const std::string &text, const std::string &image,const std::string& tag) {
+    [[nodiscard]] int updateGoods(const int& gid, const std::string &name, const std::string &text, const std::string &image,const std::string& tag) const {
         // 构造 SQL 更新语句
         std::string sql = "UPDATE GOODS SET name = '" + name + "', " +
                 "text = '" + text + "', " +
@@ -340,7 +340,7 @@ public:
         return executeSQL(sql);
     }
 
-    int getLatestGid() {
+    [[nodiscard]] int getLatestGid() const {
         sqlite3* db;
         int rc = sqlite3_open(db_filename.c_str(), &db);
         if (rc) {
@@ -366,7 +366,7 @@ public:
         return latestGoodId;
     }
 
-    int getGoodsCountByUuid(const std::string& uuid) {
+    [[nodiscard]] int getGoodsCountByUuid(const std::string& uuid) const {
         sqlite3* db;
         int rc = sqlite3_open(db_filename.c_str(), &db);
         if (rc) {
@@ -401,29 +401,29 @@ public:
 
     ///////////////////// COMMENT 表操作 /////////////////////
 
-    int addComment(int cid, const std::string &seller, const std::string &uuid, const std::string &time, const std::string &message) {
+    [[nodiscard]] int addComment(int cid, const std::string &seller, const std::string &uuid, const std::string &time, const std::string &message) const {
         std::string sql = "INSERT INTO COMMENT (cid, pid, uuid, time, message) VALUES ("+
                           std::to_string(cid) + ",'" +
                           seller + "', '" + uuid + "', '" + time + "', '" + message + "');";
         return executeSQL(sql);
     }
 
-    int deleteComment(int cid) {
+    [[nodiscard]] int deleteComment(int cid) const {
         std::string sql = "DELETE FROM COMMENT WHERE cid = " + std::to_string(cid) + ";";
         return executeSQL(sql);
     }
 
-    int getComment(int cid, std::vector<std::map<std::string, std::string>> &result) {
+    int getComment(int cid, std::vector<std::map<std::string, std::string>> &result) const {
         std::string sql = "SELECT * FROM COMMENT WHERE cid = " + std::to_string(cid) + ";";
         return querySQL(sql, result);
     }
 
-    int getCommentBySeller(const std::string& seller_uuid, std::vector<std::map<std::string, std::string>> &result) {
+    int getCommentBySeller(const std::string& seller_uuid, std::vector<std::map<std::string, std::string>> &result) const {
         std::string sql = "SELECT * FROM COMMENT WHERE seller = '" + seller_uuid + "';";
         return querySQL_many(sql, result);
     }
 
-    int getLatestCommentId() {
+    [[nodiscard]] int getLatestCommentId() const {
         sqlite3* db;
         int rc = sqlite3_open(db_filename.c_str(), &db);
         if (rc) {
@@ -564,5 +564,5 @@ private:
     std::string db_filename;
 };
 
-#endif // EPARTY_DATABASE_H
+#endif // FREEMARKET_DATABASE_H
 
