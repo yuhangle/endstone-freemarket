@@ -1,5 +1,7 @@
 ![header](https://capsule-render.vercel.app/api?type=waving&height=300&color=gradient&text=Freemarket)
 
+> This plugin is still in the development phase. Some item data may be lost during transactions. Currently supported item data includes: item name, enchantments, lore, and item durability. Unsupported data includes shulker box contents, firework data, and more. Further support will depend on future API updates from Endstone.
+
 [简体中文](README_zh-CN.md)
 
 ## Introduction
