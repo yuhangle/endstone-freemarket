@@ -68,7 +68,7 @@
   "Goods description": "商品描述",
   "The seller didn't write a description": "商家没有写描述",
   "Select the transaction settlement method": "请选择交易结算方式",
-  "Custom settlement currency": "自定义结算货币",
+  "Custom settlement currency id": "自定义结算货币ID",
   "The value entered here will be used as the settlement currency when you select custom": "当您选择自定义时,此处输入的值将用作结算货币",
   "Title and description can not be empty,and when you select custom currency,custom currency can not be empty": "标题和简介不能为空,并且当您选择自定义货币时,自定义货币不能为空",
   "Custom": "自定义",
@@ -142,5 +142,8 @@
   "Grass block": "草方块",
   "Set custom cover": "设置自定义封面",
   "You have reached the maximum limit for your goods": "你的商品数量已达上限",
-  "Are you sure to delete it?": "你确定要删除它吗?"
+  "Are you sure to delete it?": "你确定要删除它吗?",
+  "[Marketing Promotion] New goods have been listed: ": "[市场推广] 新的商品已上架: ",
+  "[Marketing Promotion] This good has been purchased: ": "[市场推广] 此商品已被购买: ",
+  "[Marketing Promotion] This good has been delisted: ": "[市场推广] 此商品已下架: "
 }

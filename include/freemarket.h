@@ -904,11 +904,11 @@ public:
         money_type.setLabel(Tran.getLocal("Select the transaction settlement method"));
         money_type.setDefaultIndex(0);
 
-        custom_money.setLabel(Tran.getLocal("Custom settlement currency"));
+        custom_money.setLabel(Tran.getLocal("Custom settlement currency id"));
         custom_money.setPlaceholder(Tran.getLocal("The value entered here will be used as the settlement currency when you select custom"));
 
         price_Input.setLabel(Tran.getLocal("Enter a price"));
-        price_Input.setPlaceholder("114");
+        price_Input.setPlaceholder("114514");
         vector<string> image_name_opt = {Tran.getLocal("Apple"),Tran.getLocal("Tools & Equipment"),Tran.getLocal("Diamond"),Tran.getLocal("Grass block")};
         vector<string> image_opt = {"textures/ui/icon_apple","textures/ui/icon_recipe_equipment","textures/items/diamond","textures/blocks/grass_side_carried"};
         image_drop.setLabel(Tran.getLocal("Select a cover"));
@@ -980,6 +980,7 @@ public:
             }
             const endstone::ItemStack *air = nullptr;
             p->getInventory().setItem(quick_index,air);
+            getServer().broadcastMessage("§l§2"+Tran.getLocal("[Marketing Promotion] New goods have been listed: ")+"§r"+the_title);
         });
         menu.setOnClose([=](endstone::Player*p){
             goods_upload_menu(*p);
@@ -1118,6 +1119,7 @@ public:
                                                                 Tran.getLocal("Goods info: ") + goods_data.name);
                         }
                         notice_menu(*p,Tran.getLocal("Successful purchase"),[this](endstone::Player& p){ main_menu(p);});
+                        getServer().broadcastMessage("§l§2"+Tran.getLocal("[Marketing Promotion] This good has been purchased: ")+"§r"+goods_data.name);
                     } else {
                         notice_menu(*p,endstone::ColorFormat::Red+Tran.getLocal("You have not enough money"),[this,goods_data](endstone::Player& p){ goods_view_menu(p,goods_data);});
                     }
@@ -1160,6 +1162,7 @@ public:
                             (void)market.user_add_item(seller_data.uuid,string_itemData);
                         }
                         notice_menu(*p,Tran.getLocal("Successful purchase"),[this](endstone::Player& p) { this->main_menu(p);});
+                        getServer().broadcastMessage("§l§2"+Tran.getLocal("[Marketing Promotion] This good has been purchased: ")+"§r"+goods_data.name);
                     } else {
                         notice_menu(*p,endstone::ColorFormat::Red+Tran.getLocal("You have not enough money"),[this](endstone::Player& p) { this->main_menu(p);});
                         return;
@@ -1315,6 +1318,7 @@ public:
                         }
                         p->getInventory().addItem(itemStack);
                         notice_menu(*p,Tran.getLocal(status.second),[this](endstone::Player& p) { this->choose_manage_goods_menu(p);});
+                        getServer().broadcastMessage("§l§2"+Tran.getLocal("[Marketing Promotion] This good has been delisted: ")+"§r"+goods_data.name);
                     } else {
                         notice_menu(*p,endstone::ColorFormat::Red+Tran.getLocal(status.second),[this](endstone::Player& p) { this->choose_manage_goods_menu(p);});
                     }
