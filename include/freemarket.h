@@ -45,9 +45,10 @@ inline Market_Action market(Database);
 
 //meta数据
 struct Meta_data{
-    std::optional<std::vector<std::string>> lore;
-    int damage{};
-    std::optional<std::string> display_name;
+    std::optional<std::vector<std::string>> lore;//lore数据
+    int damage{};//耐久损耗
+    std::optional<std::string> display_name;//物品命名
+    std::optional<std::unordered_map< std::string, int >> enchants;//物品附魔
 };
 
 //物品数据
@@ -211,35 +212,53 @@ public:
         string lore;
         string damage = to_string(meta_data.damage);
         string display_name;
+        string enchants;
+        //名字
         if (meta_data.display_name.has_value()) {
             display_name = meta_data.display_name.value();
         } else {
             display_name = "None";
         }
+        //lore数据
         if (meta_data.lore.has_value()) {
             lore = "{" + DataBase::vectorToString(meta_data.lore.value()) + "}";
         }else {
             lore = "None";
         }
-        return lore+","+damage+","+display_name;
+        //附魔数据
+        if (meta_data.enchants.has_value()) {
+            enchants = "{" + DataBase::enchantsToString(meta_data.enchants.value()) + "}";
+        } else {
+            enchants = "None";
+        }
+        return lore+","+damage+","+display_name+","+enchants;
     }
 
     //反过来
     static Meta_data StringToItemMeta(const string& data) {
         auto vec = DataBase::splitString(data);
         std::optional<std::vector<std::string>> lore;
+        optional<std::unordered_map<std::string, int>> enchants;
         std::optional<string> display_name;
 
-        string lore_str = vec[0];
-        if (lore_str != "None") {
+        //lore数据
+        if (string lore_str = vec[0]; lore_str != "None") {
             lore_str = lore_str.substr(1, lore_str.size() - 2);
             lore = DataBase::splitString(lore_str);
         }
+        //显示名字
         if (vec[2] != "None") {
             display_name = vec[2];
         }
-        int damage = DataBase::stringToInt(vec[1]);
-        return Meta_data{lore,damage,display_name};
+        //耐久
+        const int damage = DataBase::stringToInt(vec[1]);
+        //附魔
+        if (string enchants_str = vec[3]; enchants_str != "None") {
+            enchants_str = enchants_str.substr(1, enchants_str.size() - 2);
+            enchants = DataBase::stringToEnchants(enchants_str);
+        }
+
+        return Meta_data{lore,damage,display_name, enchants};
     }
 
     //还原回ItemData
@@ -443,7 +462,7 @@ public:
         getLogger().info("onEnable is called");
         datafile_check();
         if (!DataBase::fileExists(db_file)) {
-            bool initStatus = Database.init_database();
+            (void)Database.init_database();
             getLogger().info(endstone::ColorFormat::Yellow + Tran.getLocal("Database file not find,auto create"));
         }
         //进行一个配置文件的读取
@@ -815,11 +834,23 @@ public:
         for (int i = 0;i <= 8;i++) {
             if (auto one_item = player.getInventory().getItem(i)) {
                 auto meta = one_item->getItemMeta();
+                //存在meta数据
                 if (one_item->hasItemMeta()){
-                    quick_items.push_back({one_item->getType(),one_item->getAmount(), Meta_data{meta->getLore(),meta->getDamage(),meta->getDisplayName()}});
-                    quick_items_name.push_back(to_string(i+1) + ". "+ Tran.getLocal("Item ID: ") + one_item->getType() + Tran.getLocal("Number: ") +
-                                                       to_string(one_item->getAmount()));
-                } else {
+                    //附魔情况
+                    if (meta->hasEnchants()) {
+                        quick_items.push_back({one_item->getType(),one_item->getAmount(), Meta_data{meta->getLore(),meta->getDamage(),meta->getDisplayName(),meta->getEnchants()}});
+                        quick_items_name.push_back(to_string(i+1) + ". "+ Tran.getLocal("Item ID: ") + one_item->getType() + Tran.getLocal("Number: ") +
+                                                           to_string(one_item->getAmount()));
+                    }
+                    //无附魔
+                    else {
+                        quick_items.push_back({one_item->getType(),one_item->getAmount(), Meta_data{meta->getLore(),meta->getDamage(),meta->getDisplayName()}});
+                        quick_items_name.push_back(to_string(i+1) + ". "+ Tran.getLocal("Item ID: ") + one_item->getType() + Tran.getLocal("Number: ") +
+                                                           to_string(one_item->getAmount()));
+                    }
+                }
+                //不存在meta数据
+                else {
                     quick_items.push_back({one_item->getType(),one_item->getAmount(), nullopt});
                     quick_items_name.push_back(to_string(i+1) + ". " + Tran.getLocal("Item ID: ") + one_item->getType() + Tran.getLocal("Number: ") +
                                                                             to_string(one_item->getAmount()));
@@ -1069,6 +1100,12 @@ public:
                         meta->setLore(itemData.item_meta->lore);
                         meta->setDamage(itemData.item_meta->damage);
                         meta->setDisplayName(itemData.item_meta->display_name);
+                        //有附魔
+                        if (itemData.item_meta->enchants.has_value()) {
+                            for (const auto &one_enchant:itemData.item_meta->enchants.value()) {
+                                meta->addEnchant(one_enchant.first, one_enchant.second,false);
+                            }
+                        }
                         // 将 meta 应用到 new_item
                         new_item.setItemMeta(nullptr);
                         new_item.setItemMeta(meta);
@@ -1100,6 +1137,12 @@ public:
                         meta->setLore(itemData.item_meta->lore);
                         meta->setDamage(itemData.item_meta->damage);
                         meta->setDisplayName(itemData.item_meta->display_name);
+                        //有附魔
+                        if (itemData.item_meta->enchants.has_value()) {
+                            for (const auto &one_enchant:itemData.item_meta->enchants.value()) {
+                                meta->addEnchant(one_enchant.first, one_enchant.second,false);
+                            }
+                        }
                         // 将 meta 应用到 new_item
                         new_item.setItemMeta(meta);
                         // 将物品添加到玩家的背包
@@ -1114,7 +1157,7 @@ public:
                         //把物品打到商家帐上
                         for(const auto& one_item:cleared_itemData) {
                             string string_itemData = ItemDataToString(one_item);
-                            auto addItemStatus = market.user_add_item(seller_data.uuid,string_itemData);
+                            (void)market.user_add_item(seller_data.uuid,string_itemData);
                         }
                         notice_menu(*p,Tran.getLocal("Successful purchase"),[this](endstone::Player& p) { this->main_menu(p);});
                     } else {
@@ -1161,13 +1204,19 @@ public:
                     meta->setLore(meta_value->lore);
                     meta->setDamage(meta_value->damage);
                     meta->setDisplayName(meta_value->display_name);
+                    //有附魔
+                    if (meta_value->enchants.has_value()) {
+                        for (const auto& one_enchant:meta_value->enchants.value()) {
+                            meta->addEnchant(one_enchant.first, one_enchant.second,false);
+                        }
+                    }
                     itemStack.setItemMeta(meta);
                     p->getInventory().addItem(itemStack);
                 } else {
                     p->getInventory().addItem(itemStack);
                 }
             }
-            auto clearItemStatus = market.user_clear_item(p->getUniqueId().str());
+            (void)market.user_clear_item(p->getUniqueId().str());
             notice_menu(*p,Tran.getLocal("The withdrawal is complete"),[this](endstone::Player& p){ account_menu(p);});
         });
         menu.setOnClose([=](endstone::Player *p){
@@ -1251,10 +1300,17 @@ public:
                         itemStack.setType(itemData.item_id);
                         itemStack.setAmount(itemData.item_num);
                         if (itemData.item_meta.has_value()) {
-                            endstone::ItemMeta* meta = nullptr;
+                            auto meta_ptr = getServer().getItemFactory().getItemMeta(itemData.item_id);
+                            endstone::ItemMeta* meta = meta_ptr.get();
                             meta->setLore(itemData.item_meta->lore);
                             meta->setDamage(itemData.item_meta->damage);
                             meta->setDisplayName(itemData.item_meta->display_name);
+                            //附魔
+                            if (itemData.item_meta->enchants.has_value()) {
+                                for (const auto &one_enchant: itemData.item_meta->enchants.value()) {
+                                    meta->addEnchant(one_enchant.first,one_enchant.second,false);
+                                }
+                            }
                             itemStack.setItemMeta(meta);
                         }
                         p->getInventory().addItem(itemStack);

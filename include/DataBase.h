@@ -560,6 +560,49 @@ public:
         }
     }
 
+
+    // 将附魔 map 转换为字符串
+    static std::string enchantsToString(const std::unordered_map<std::string, int>& enchants) {
+        if (enchants.empty()) {
+            return ""; // 如果没有附魔，返回空字符串
+        }
+
+        std::ostringstream oss;
+
+        for (auto it = enchants.begin(); it != enchants.end(); ++it) {
+            oss << it->first << ":" << it->second; // 格式：enchant_name:level
+
+            // 如果不是最后一个元素，添加逗号
+            if (std::next(it) != enchants.end()) {
+                oss << ",";
+            }
+        }
+
+        return oss.str();
+    }
+    //还原附魔字符串为附魔map
+    static std::unordered_map<std::string, int> stringToEnchants(const std::string& str) {
+        std::unordered_map<std::string, int> result;
+        std::istringstream ss(str);
+        std::string pairStr;
+
+        while (std::getline(ss, pairStr, ',')) {
+            size_t colonPos = pairStr.find(':');
+            if (colonPos != std::string::npos) {
+                std::string key = pairStr.substr(0, colonPos);
+                std::string valueStr = pairStr.substr(colonPos + 1);
+                try {
+                    int value = std::stoi(valueStr);
+                    result[key] = value;
+                } catch (...) {
+                    // 忽略无效项
+                }
+            }
+        }
+
+        return result;
+    }
+
 private:
     std::string db_filename;
 };
