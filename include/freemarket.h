@@ -455,6 +455,34 @@ public:
         //加载语言
         pair lang_status = Tran.loadLanguage();
         getLogger().info(lang_status.second);
+        #ifdef __linux__
+        namespace fs = std::filesystem;
+        try {
+            // 获取当前路径
+            const fs::path currentPath = fs::current_path();
+            //std::cout << "Current path is: " << currentPath << std::endl;
+
+            // 子目录路径
+            const fs::path subdir = "plugins/freemarket/data.db";
+
+            // 拼接路径
+            const fs::path fullPath = currentPath / subdir;
+            //std::cout << "Full path is: " << fullPath << std::endl;
+
+            // 如果需要将最终路径转换为 string 类型
+            const std::string finalPathStr = fullPath.string();
+            //std::cout << "Final path as string is: " << finalPathStr << std::endl;
+            // 使用完整路径重新初始化Database
+            Database = DataBase(finalPathStr);
+            market = Market_Action(Database);
+        }
+        catch (const fs::filesystem_error& e) {
+            std::cerr << "Filesystem error: " << e.what() << std::endl;
+        }
+        catch (const std::exception& e) {
+            std::cerr << "General error: " << e.what() << std::endl;
+        }
+        #endif
     }
 
     void onEnable() override
