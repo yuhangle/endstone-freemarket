@@ -19,10 +19,10 @@
 #include <endstone/form/action_form.h>
 #include <endstone/player.h>
 #include <endstone/form/modal_form.h>
-//#include <endstone/player.h>
 #include <endstone/server.h>
 #include <endstone/event/player/player_interact_event.h>
-//#include <endstone/event/server/broadcast_message_event.h>
+#include <endstone/lang/translatable.h>
+#include <endstone/lang/language.h>
 
 using json = nlohmann::json;
 
@@ -383,7 +383,7 @@ public:
                         auto meta = the_one->getItemMeta();
                         itemData.item_id = the_one->getType();
                         itemData.item_num = current_amount;
-                        itemData.item_meta = {meta->getLore(),meta->getDamage(),meta->getDisplayName()};
+                        itemData.item_meta = {meta->getLore(),meta->getDamage(),meta->getDisplayName(),meta->getEnchants()};
                     } else {
                         itemData.item_id = the_one->getType();
                         itemData.item_num = current_amount;
@@ -396,6 +396,20 @@ public:
                 else {
                     int amount = current_amount - total;
                     auto the_item = player.getInventory().getItem(slot_index);
+                    //构造ItemData
+                    ItemData itemData;
+                    if (the_item->hasItemMeta()) {
+                        auto meta = the_item->getItemMeta();
+                        itemData.item_id = the_item->getType();
+                        itemData.item_num = total;
+                        itemData.item_meta = {meta->getLore(),meta->getDamage(),meta->getDisplayName(),meta->getEnchants()};
+                    } else {
+                        itemData.item_id = the_item->getType();
+                        itemData.item_num = total;
+                    }
+                    //将获取的数据返回去
+                    cleared_itemData.push_back(itemData);
+                    //构建减去的物品设置给玩家
                     endstone::ItemStack new_item;
                     new_item.setType(the_item->getType());
                     new_item.setAmount(amount);
@@ -405,17 +419,6 @@ public:
                         new_item.setItemMeta(new_meta.get());
                     }
                     player.getInventory().setItem(slot_index,&new_item);
-                    ItemData itemData;
-                    if (the_item->hasItemMeta()) {
-                        auto meta = the_item->getItemMeta();
-                        itemData.item_id = the_item->getType();
-                        itemData.item_num = total;
-                        itemData.item_meta = {meta->getLore(),meta->getDamage(),meta->getDisplayName()};
-                    } else {
-                        itemData.item_id = the_item->getType();
-                        itemData.item_num = total;
-                    }
-                    cleared_itemData.push_back(itemData);
                     return true;
                 }
             }
@@ -1063,8 +1066,30 @@ public:
         endstone::Label goods_info;
         endstone::Label buyer_info;
         endstone::Button confirm_buy;
+        //物品数据
+        string dis_goods_meta;
+        if (!goods_data.data.empty()) {
+            Meta_data goods_meta = StringToItemMeta(goods_data.data);
+            dis_goods_meta += Tran.getLocal("Item damage: ")+to_string(goods_meta.damage);
+            if (goods_meta.display_name.has_value()) {
+                dis_goods_meta += "\n" + Tran.getLocal("Name tag: ")+goods_meta.display_name.value();
+            }
+            dis_goods_meta += "§r";
+            if (goods_meta.lore.has_value()) {
+                dis_goods_meta += "\n lore: ";
+                for (const auto& one_lore:goods_meta.lore.value()) {
+                    dis_goods_meta += one_lore+", ";
+                }
+            }
+            if (goods_meta.enchants.has_value()) {
+                dis_goods_meta += "\n" + Tran.getLocal("Enchant: ");
+                for (const auto&[fst, snd]:goods_meta.enchants.value()) {
+                    dis_goods_meta += fst + ":" + to_string(snd)+", ";
+                }
+            }
+        }
 
-        goods_info.setText(Tran.getLocal("Goods name: ")+goods_data.name+"\n"+Tran.getLocal("Goods description: ")+goods_data.text+"\n"+Tran.getLocal("Goods Info: ")+goods_data.item+"\n"
+        goods_info.setText(Tran.getLocal("Goods name: ")+goods_data.name+"\n"+Tran.getLocal("Goods description: ")+goods_data.text+"\n"+Tran.getLocal("Goods Info: ")+goods_data.item+"\n"+dis_goods_meta+"\n"
                             +Tran.getLocal("Price: ")+to_string(goods_data.price)+"\n"+Tran.getLocal("Currency: ")+Tran.getLocal(goods_data.money_type)+"\n"+
                             Tran.getLocal("Seller info: ")+seller_info);
 
@@ -1217,7 +1242,30 @@ public:
         menu.setTitle(Tran.getLocal("Withdraw the payment"));
         string display_info;
         for (const auto& one_item:user_all_item) {
-            display_info += one_item.item_id + " x " + to_string(one_item.item_num) + "\n";
+
+            //物品数据
+            string dis_goods_meta;
+            if (one_item.item_meta.has_value()) {
+                Meta_data goods_meta = one_item.item_meta.value();
+                dis_goods_meta += Tran.getLocal("Item damage: ")+to_string(goods_meta.damage);
+                if (goods_meta.display_name.has_value()) {
+                    dis_goods_meta += "\n" + Tran.getLocal("Name tag: ")+goods_meta.display_name.value();
+                }
+                dis_goods_meta += "§r";
+                if (goods_meta.lore.has_value()) {
+                    dis_goods_meta += "\n lore: ";
+                    for (const auto& one_lore:goods_meta.lore.value()) {
+                        dis_goods_meta += one_lore+", ";
+                    }
+                }
+                if (goods_meta.enchants.has_value()) {
+                    dis_goods_meta += "\n" + Tran.getLocal("Enchant: ");
+                    for (const auto&[fst, snd]:goods_meta.enchants.value()) {
+                        dis_goods_meta += fst + ":" + to_string(snd)+", ";
+                    }
+                }
+            }
+            display_info += one_item.item_id + " x " + to_string(one_item.item_num) + "\n" + dis_goods_meta + "\n --------------------\n";
         }
         endstone::Label context;
         context.setText(Tran.getLocal("Your payment: ") +"\n"+display_info);

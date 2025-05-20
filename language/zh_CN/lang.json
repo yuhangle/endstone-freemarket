@@ -145,5 +145,8 @@
   "Are you sure to delete it?": "你确定要删除它吗?",
   "[Marketing Promotion] New goods have been listed: ": "[市场推广] 新的商品已上架: ",
   "[Marketing Promotion] This good has been purchased: ": "[市场推广] 此商品已被购买: ",
-  "[Marketing Promotion] This good has been delisted: ": "[市场推广] 此商品已下架: "
+  "[Marketing Promotion] This good has been delisted: ": "[市场推广] 此商品已下架: ",
+  "Item damage: ": "物品损耗值: ",
+  "Name tag: ": "物品命名: ",
+  "Enchant: ": "附魔: "
 }
