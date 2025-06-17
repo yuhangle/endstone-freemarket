@@ -148,5 +148,10 @@
   "[Marketing Promotion] This good has been delisted: ": "[市场推广] 此商品已下架: ",
   "Item damage: ": "物品损耗值: ",
   "Name tag: ": "物品命名: ",
-  "Enchant: ": "附魔: "
+  "Enchant: ": "附魔: ",
+  "Sell Records": "卖出记录",
+  "Buy Records": "买入记录",
+  "Date: ": "日期: ",
+  "Seller: ": "卖家: ",
+  "Transaction Records": "交易记录"
 }

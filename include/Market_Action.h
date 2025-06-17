@@ -129,6 +129,34 @@ public:
     //根据商户的uuid删除其全部评论
     pair<bool,string> comment_del_by_seller(const string& uuid) const;
 
+    //交易记录部分
+
+    struct Record_data {
+        bool status;
+        string uuid;
+        string seller;
+        string buyer;
+        string time;
+        string goods;
+    };
+
+    //记录交易
+    [[nodiscard]] pair<bool,string> record_add(const string& seller,const string& buyer,const string& goods) const;
+
+    //获取交易数据
+    [[nodiscard]] Record_data record_get_by_uuid(const string& uuid) const;
+
+    //交易存在
+    [[nodiscard]] bool record_exist(const string& uuid) const;
+
+    //删除交易记录
+    [[nodiscard]] pair<bool,string> record_del(const string& uuid) const;
+
+    //通过商户的uuid批量获取交易数据
+    [[nodiscard]] vector<Record_data> record_get_by_seller(const string& seller) const;
+
+    //通过买家的uuid批量获取交易数据
+    [[nodiscard]] vector<Record_data> record_get_by_buyer(const string& buyer) const;
 private:
     DataBase Database;
 };

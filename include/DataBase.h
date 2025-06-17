@@ -14,6 +14,7 @@
 #include <utility>
 #include <vector>
 #include <map>
+#include <random>
 
 class DataBase {
 public:
@@ -82,7 +83,22 @@ public:
                                          ");";
         rc = sqlite3_exec(db, create_comment_table.c_str(), nullptr, nullptr, nullptr);
         if (rc != SQLITE_OK) {
-            std::cerr << "创建 GOODS 表失败: " << sqlite3_errmsg(db) << std::endl;
+            std::cerr << "创建 COMMENT 表失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+
+        // 创建 RECORD 表
+        std::string create_record_table = "CREATE TABLE IF NOT EXISTS RECORD ("
+                                           "uuid TEXT,"
+                                           "seller TEXT,"
+                                           "buyer TEXT,"
+                                           "time TEXT,"
+                                           "goods TEXT"
+                                         ");";
+        rc = sqlite3_exec(db, create_record_table.c_str(), nullptr, nullptr, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "创建 RECORD 表失败: " << sqlite3_errmsg(db) << std::endl;
             sqlite3_close(db);
             return rc;
         }
@@ -449,6 +465,34 @@ public:
         return latestCommentId;
     }
 
+    ///////////////////// RECORD 表操作 /////////////////////
+
+    [[nodiscard]] int addRecord(const std::string &uuid, const std::string &seller, const std::string &buyer, const std::string &time, const std::string &goods) const {
+        std::string sql = "INSERT INTO RECORD (uuid, seller, buyer, time, goods) VALUES ('" +
+            uuid + "','" + seller + "', '" + buyer + "', '" + time + "', '" + goods + "');";
+        return executeSQL(sql);
+    }
+
+    [[nodiscard]] int deleteRecord(const std::string &uuid) const {
+        std::string sql = "DELETE FROM RECORD WHERE uuid = '" + uuid + "';";
+        return executeSQL(sql);
+    }
+
+    int getRecord(const std::string &cid, std::vector<std::map<std::string, std::string>> &result) const {
+        std::string sql = "SELECT * FROM RECORD WHERE uuid = '" + cid + "';";
+        return querySQL(sql, result);
+    }
+
+    int getRecordBySeller(const std::string& seller_uuid, std::vector<std::map<std::string, std::string>> &result) const {
+        std::string sql = "SELECT * FROM RECORD WHERE seller = '" + seller_uuid + "';";
+        return querySQL_many(sql, result);
+    }
+
+    int getRecordByBuyer(const std::string& buyer_uuid, std::vector<std::map<std::string, std::string>> &result) const {
+        std::string sql = "SELECT * FROM RECORD WHERE buyer = '" + buyer_uuid + "';";
+        return querySQL_many(sql, result);
+    }
+
     //数据库工具
 
     //将逗号字符串分割为vector
@@ -601,6 +645,33 @@ public:
         }
 
         return result;
+    }
+
+    // 生成一个符合 RFC 4122 标准的 UUID v4
+    static std::string generate_uuid_v4() {
+        static thread_local std::mt19937 gen{std::random_device{}()};
+
+        std::uniform_int_distribution<int> dis(0, 15);
+
+        std::stringstream ss;
+        ss << std::hex; // 设置为十六进制输出
+
+        for (int i = 0; i < 8; ++i) ss << dis(gen);
+        ss << "-";
+        for (int i = 0; i < 4; ++i) ss << dis(gen);
+        ss << "-";
+
+        ss << "4"; // 版本号为 4
+        for (int i = 0; i < 3; ++i) ss << dis(gen);
+        ss << "-";
+
+        ss << (dis(gen) & 0x3 | 0x8);
+        for (int i = 0; i < 3; ++i) ss << dis(gen);
+        ss << "-";
+
+        for (int i = 0; i < 12; ++i) ss << dis(gen);
+
+        return ss.str();
     }
 
 private:

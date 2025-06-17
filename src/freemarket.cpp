@@ -4,7 +4,7 @@
 
 #include "freemarket.h"
 
-ENDSTONE_PLUGIN("freemarket", "0.1.0dev5", FreeMarket)
+ENDSTONE_PLUGIN("freemarket", "0.1.0dev6", FreeMarket)
 {
     description = "An Endstone plugin for player to use in free market trading";
 

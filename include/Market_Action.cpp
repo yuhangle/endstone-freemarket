@@ -402,3 +402,74 @@ pair<bool, string> Market_Action::comment_del_by_seller(const std::string &uuid)
         return {false, to_string(su_times) + "," + to_string(fail_times)};
     }
 }
+
+
+//交易记录
+pair<bool,string> Market_Action::record_add(const string& seller,const string& buyer,const string& goods) const {
+    const auto uuid = DataBase::generate_uuid_v4();
+    if (Database.addRecord(uuid,seller,buyer, getFormattedCurrentTime(),goods)) {
+        return {false,"Record failed"};
+    } else {
+        return {true,"Record successfully"};
+    }
+};
+
+Market_Action::Record_data Market_Action::record_get_by_uuid(const string& uuid) const {
+    vector<map<string,string>> result;
+    Database.getRecord(uuid,result);
+    if (result.empty()) {
+        return {false};
+    } else {
+        auto data = result[0];
+        return {true,uuid,data.at("seller"),data.at("buyer"),data.at("time"),data.at("goods")};
+    }
+}
+
+bool Market_Action::record_exist(const string& uuid) const {
+    return Database.isValueExists("RECORD","uuid",uuid);
+}
+
+pair<bool,string> Market_Action::record_del(const string& uuid) const {
+    if (!record_exist(uuid)) {
+        return {false,"Record not exists"};
+    }
+    if (Database.deleteRecord(uuid)) {
+        return {false,"Delete failed"};
+    } else {
+        return {true,"Delete successfully"};
+    }
+}
+
+vector<Market_Action::Record_data> Market_Action::record_get_by_seller(const string& seller) const {
+    if (!user_exist(seller)) {
+        return {};
+    }
+    std::vector<std::map<std::string, std::string>> result;
+    Database.getRecordBySeller(seller,result);
+    if (result.empty()) {
+        return {};
+    }
+    vector<Record_data> record_data;
+    for (const auto& data:result) {
+        Record_data one_record = {true,data.at("uuid"),data.at("seller"),data.at("buyer"),data.at("time"),data.at("goods")};
+        record_data.push_back(one_record);
+    }
+    return record_data;
+}
+
+vector<Market_Action::Record_data> Market_Action::record_get_by_buyer(const string& buyer) const {
+    if (!user_exist(buyer)) {
+        return {};
+    }
+    std::vector<std::map<std::string, std::string>> result;
+    Database.getRecordByBuyer(buyer,result);
+    if (result.empty()) {
+        return {};
+    }
+    vector<Record_data> record_data;
+    for (const auto& data:result) {
+        Record_data one_record = {true,data.at("uuid"),data.at("seller"),data.at("buyer"),data.at("time"),data.at("goods")};
+        record_data.push_back(one_record);
+    }
+    return record_data;
+}
