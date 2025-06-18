@@ -153,5 +153,7 @@
   "Buy Records": "买入记录",
   "Date: ": "日期: ",
   "Seller: ": "卖家: ",
-  "Transaction Records": "交易记录"
+  "Transaction Records": "交易记录",
+  "No buy records": "没有买入记录",
+  "No sell records": "没有卖出记录"
 }
