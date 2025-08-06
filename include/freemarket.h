@@ -616,7 +616,7 @@ public:
                             sender.sendErrorMessage(Tran.getLocal("The built-in economy system of freemarket not enable,you can not use this command"));
                             return false;
                         }
-                        if (!sender.isOp()) {
+                        if (!sender.hasPermission("OP")) {
                             sender.sendErrorMessage(Tran.getLocal("You are not op,you can not use this command"));
                             return false;
                         }
