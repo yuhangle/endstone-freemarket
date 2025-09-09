@@ -7,6 +7,8 @@
 #include <vector>
 #include "DataBase.h"
 #include <iomanip>  // 👈 Windows需要
+#include <chrono>  // 👈 Windows需要
+#include <ctime>   // 👈 Windows需要
 using namespace std;
 
 class Market_Action {
