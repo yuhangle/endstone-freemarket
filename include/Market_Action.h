@@ -6,6 +6,7 @@
 #define TEST_MARKET_ACTION_H
 #include <vector>
 #include "DataBase.h"
+#include <iomanip>  // 👈 Windows需要
 using namespace std;
 
 class Market_Action {
