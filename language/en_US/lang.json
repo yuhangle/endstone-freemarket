@@ -155,5 +155,6 @@
   "Seller: ": "Seller: ",
   "Transaction Records": "Transaction Records",
   "No buy records": "No buy records",
-  "No sell records": "No sell records"
+  "No sell records": "No sell records",
+  "Your inventory is full, please clear some space and try again": "Your inventory is full, please clear some space and try again"
 }

@@ -472,6 +472,16 @@ public:
         return true;
     }
 
+    //检查玩家的背包是否已满
+    static bool check_player_inventory_full(const endstone::Player&player) {
+        for (int i =0;i <= 35;i++) {
+            if (!player.getInventory().getItem(i)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     void onLoad() override
     {
         getLogger().info("onLoad is called");
@@ -1153,6 +1163,11 @@ public:
 
     //确认购买
     void confirm_to_buy_menu(endstone::Player& player,const Market_Action::Goods_data& goods_data) {
+        //先检查玩家背包是否已满
+        if (check_player_inventory_full(player)) {
+            notice_menu(player,endstone::ColorFormat::Red+Tran.getLocal("Your inventory is full, please clear some space and try again"),[this](endstone::Player& p){ main_menu(p);});
+            return;
+        }
         endstone::MessageForm menu;
         menu.setTitle(Tran.getLocal("Confirm Menu"));
         menu.setButton1(Tran.getLocal("Yes,It will be mine"));
@@ -1391,6 +1406,11 @@ public:
 
     //删除商品菜单
     void del_goods_menu(endstone::Player& player,const Market_Action::Goods_data& goods_data){
+        //先检查玩家背包是否已满
+        if (check_player_inventory_full(player)) {
+            notice_menu(player,endstone::ColorFormat::Red+Tran.getLocal("Your inventory is full, please clear some space and try again"),[this](endstone::Player& p){ main_menu(p);});
+            return;
+        }
         endstone::MessageForm menu;
         menu.setTitle(Tran.getLocal("Delete Goods Menu"));
         menu.setContent(Tran.getLocal("Are you sure to delete it?"));
