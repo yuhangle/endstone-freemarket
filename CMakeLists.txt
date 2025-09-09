@@ -25,20 +25,25 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+# SQLite3
+find_package(SQLite3 REQUIRED)
+
+# fmt (header-only or static)
+FetchContent_Declare(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt.git
+        GIT_TAG 11.2.0
+)
+FetchContent_MakeAvailable(fmt)
+
 endstone_add_plugin(${PROJECT_NAME} src/freemarket.cpp include/Market_Action.cpp)
 
 target_include_directories(${PROJECT_NAME}
         PRIVATE ${CMAKE_SOURCE_DIR}/include
         )
-if (WIN32)
-    include_directories(D:/Apps/vcpkg/installed/x64-windows-static/include)
-    link_directories(D:/Apps/vcpkg/installed/x64-windows-static/lib)
-    target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json "D:/Apps/vcpkg/installed/x64-windows-static/lib/sqlite3.lib")
-endif ()
-if (UNIX)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(SQLITE3 REQUIRED sqlite3)
-    include_directories(${SQLITE3_INCLUDE_DIRS})
-    link_directories(${SQLITE3_LIBRARY_DIRS})
-    target_link_libraries(${PROJECT_NAME} PRIVATE nlohmann_json::nlohmann_json ${SQLITE3_LIBRARIES})
-endif ()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE
+        nlohmann_json::nlohmann_json
+        SQLite::SQLite3
+        fmt::fmt-header-only
+)

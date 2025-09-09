@@ -204,20 +204,23 @@ public:
             std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
             return false;
         }
-        std::string sql;
-        if (columnName == "gid") {
-            // 构造 SQL 查询语句
-            sql = "SELECT COUNT(*) FROM " + tableName + " WHERE " + columnName + " = " + value + ";";
-        } else {
-            // 构造 SQL 查询语句
-            sql = "SELECT COUNT(*) FROM " + tableName + " WHERE " + columnName + " = '" + value + "';";
-        }
+        
+        std::string sql = "SELECT COUNT(*) FROM " + tableName + " WHERE " + columnName + " = ?;";
+        
         sqlite3_stmt* stmt;
         rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
         if (rc != SQLITE_OK) {
             std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
             sqlite3_close(db);
             return false;
+        }
+        
+        // 绑定参数
+        if (columnName == "gid") {
+            int gid = std::stoi(value);
+            sqlite3_bind_int(stmt, 1, gid);
+        } else {
+            sqlite3_bind_text(stmt, 1, value.c_str(), -1, SQLITE_STATIC);
         }
 
         // 执行查询并获取结果
@@ -246,34 +249,45 @@ public:
             std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
             return false;
         }
-        std::string sql;
-        if (conditionColumn == "gid") {
-            sql = "UPDATE " + tableName +
-                  " SET " + targetColumn + " = '" + newValue + "'" +
-                  " WHERE " + conditionColumn + " = " + conditionValue + ";";
-        }
-        else {
-            if (targetColumn == "money") {
-                sql = "UPDATE " + tableName +
-                      " SET " + targetColumn + " = " + newValue + "" +
-                      " WHERE " + conditionColumn + " = '" + conditionValue + "';";
-            }
-            else {
-                // 构造 SQL 更新语句
-                sql = "UPDATE " + tableName +
-                      " SET " + targetColumn + " = '" + newValue + "'" +
-                      " WHERE " + conditionColumn + " = '" + conditionValue + "';";
-            }
-        }
-        // 执行 SQL 语句
-        rc = sqlite3_exec(db, sql.c_str(), nullptr, nullptr, nullptr);
+        
+        std::string sql = "UPDATE " + tableName +
+                          " SET " + targetColumn + " = ?" +
+                          " WHERE " + conditionColumn + " = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
         if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return false;
+        }
+        
+        // 绑定参数
+        if (targetColumn == "money") {
+            int money = std::stoi(newValue);
+            sqlite3_bind_int(stmt, 1, money);
+        } else {
+            sqlite3_bind_text(stmt, 1, newValue.c_str(), -1, SQLITE_STATIC);
+        }
+        
+        if (conditionColumn == "gid") {
+            int gid = std::stoi(conditionValue);
+            sqlite3_bind_int(stmt, 2, gid);
+        } else {
+            sqlite3_bind_text(stmt, 2, conditionValue.c_str(), -1, SQLITE_STATIC);
+        }
+
+        // 执行 SQL 语句
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
             std::cerr << "SQL 更新失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
             sqlite3_close(db);
             return false;
         }
 
         // 关闭数据库连接
+        sqlite3_finalize(stmt);
         sqlite3_close(db);
 
         return true;
@@ -284,57 +298,377 @@ public:
 
     [[nodiscard]] int addUser(const std::string &uuid, const std::string &playername,
                 const std::string &username, const std::string &avatar,const std::string& item, const int money) const {
-        std::string sql = "INSERT INTO USER (uuid, playername, username, avatar, item, money) VALUES ('" +
-                          uuid + "', '" + playername + "', '" + username + "', '" + avatar +
-                          "',' " + item + "',"+ std::to_string(money) +");";
-        return executeSQL(sql);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "INSERT INTO USER (uuid, playername, username, avatar, item, money) VALUES (?, ?, ?, ?, ?, ?);";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, uuid.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, playername.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, username.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 4, avatar.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 5, item.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 6, money);
+        
+        // 执行
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 插入失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     [[nodiscard]] int deleteUser(const std::string &uuid) const {
-        std::string sql = "DELETE FROM USER WHERE uuid = '" + uuid + "';";
-        return executeSQL(sql);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "DELETE FROM USER WHERE uuid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, uuid.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 删除失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     [[nodiscard]] int updateUser(const std::string &uuid, const std::string &playername,
                    const std::string &username, const std::string &avatar,const std::string& item, const int money) const {
-        std::string sql = "UPDATE USER SET playername = '" +
-                          uuid + "', '" + playername + "', '" + username + "', '" + avatar +
-                          "',' " + item + "',"+ std::to_string(money) +";";
-        return executeSQL(sql);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "UPDATE USER SET playername = ?, username = ?, avatar = ?, item = ?, money = ? WHERE uuid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, playername.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, username.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, avatar.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 4, item.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 5, money);
+        sqlite3_bind_text(stmt, 6, uuid.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 更新失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     int getUser(const std::string &uuid, std::vector<std::map<std::string, std::string>> &result) const {
-        std::string sql = "SELECT * FROM USER WHERE uuid = '" + uuid + "';";
-        return querySQL(sql, result);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "SELECT * FROM USER WHERE uuid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, uuid.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行查询并处理结果
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            std::map<std::string, std::string> row;
+            for (int i = 0; i < sqlite3_column_count(stmt); i++) {
+                const char* colName = sqlite3_column_name(stmt, i);
+                const char* colValue = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i));
+                row[colName] = colValue ? colValue : "NULL";
+            }
+            result.push_back(row);
+        }
+        
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 查询失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     int getUser_by_playername(const std::string &playername, std::vector<std::map<std::string, std::string>> &result) const {
-        std::string sql = "SELECT * FROM USER WHERE playername = '" + playername + "';";
-        return querySQL(sql, result);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "SELECT * FROM USER WHERE playername = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, playername.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行查询并处理结果
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            std::map<std::string, std::string> row;
+            for (int i = 0; i < sqlite3_column_count(stmt); i++) {
+                const char* colName = sqlite3_column_name(stmt, i);
+                const char* colValue = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i));
+                row[colName] = colValue ? colValue : "NULL";
+            }
+            result.push_back(row);
+        }
+        
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 查询失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     ///////////////////// GOODS 表操作 /////////////////////
 
     [[nodiscard]] int addGoods(const int& gid,const std::string &uuid, const std::string &name, const std::string &text,
                 const std::string &item,const std::string &data,const std::string &image,const int price,const std::string &money_type,const std::string &tag) const {
-        std::string sql = "INSERT INTO GOODS (gid, uuid, name, text, item, data, image, price, money_type, tag) VALUES (" + std::to_string(gid) +",'" + uuid + "','" +
-                          name + "', '" + text + "', '" + item + "','" + data + "','" + image + "'," + std::to_string(price) + ",'" + money_type + "','" + tag + "');";
-        return executeSQL(sql);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "INSERT INTO GOODS (gid, uuid, name, text, item, data, image, price, money_type, tag) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_int(stmt, 1, gid);
+        sqlite3_bind_text(stmt, 2, uuid.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, name.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 4, text.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 5, item.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 6, data.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 7, image.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 8, price);
+        sqlite3_bind_text(stmt, 9, money_type.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 10, tag.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 插入失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     [[nodiscard]] int deleteGoods(int gid) const {
-        std::string sql = "DELETE FROM GOODS WHERE gid = " + std::to_string(gid) + ";";
-        return executeSQL(sql);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "DELETE FROM GOODS WHERE gid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_int(stmt, 1, gid);
+        
+        // 执行
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 删除失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     int getGoodsByUuid(const std::string& uuid, std::vector<std::map<std::string, std::string>> &result) const {
-        std::string sql = "SELECT * FROM GOODS WHERE uuid = '" + uuid + "';";
-        return querySQL_many(sql, result);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "SELECT * FROM GOODS WHERE uuid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, uuid.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行查询并处理结果
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            std::map<std::string, std::string> row;
+            for (int i = 0; i < sqlite3_column_count(stmt); i++) {
+                const char* colName = sqlite3_column_name(stmt, i);
+                const char* colValue = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i));
+                row[colName] = colValue ? colValue : "NULL";
+            }
+            result.push_back(row);
+        }
+        
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 查询失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     int getGoodsByGid(const int& gid, std::vector<std::map<std::string, std::string>> &result) const {
-        std::string sql = "SELECT * FROM GOODS WHERE gid = " + std::to_string(gid) + ";";
-        return querySQL_many(sql, result);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "SELECT * FROM GOODS WHERE gid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_int(stmt, 1, gid);
+        
+        // 执行查询并处理结果
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            std::map<std::string, std::string> row;
+            for (int i = 0; i < sqlite3_column_count(stmt); i++) {
+                const char* colName = sqlite3_column_name(stmt, i);
+                const char* colValue = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i));
+                row[colName] = colValue ? colValue : "NULL";
+            }
+            result.push_back(row);
+        }
+        
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 查询失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     int getAllGoods(std::vector<std::map<std::string, std::string>> &result) const {
@@ -346,14 +680,42 @@ public:
     }
 
     [[nodiscard]] int updateGoods(const int& gid, const std::string &name, const std::string &text, const std::string &image,const std::string& tag) const {
-        // 构造 SQL 更新语句
-        std::string sql = "UPDATE GOODS SET name = '" + name + "', " +
-                "text = '" + text + "', " +
-                "image = '" + image + "', " +
-                "tag = '" + tag + "' " +
-                "WHERE gid = " + std::to_string(gid) + ";";
-        // 执行 SQL 语句
-        return executeSQL(sql);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "UPDATE GOODS SET name = ?, text = ?, image = ?, tag = ? WHERE gid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, name.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, text.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, image.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 4, tag.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_int(stmt, 5, gid);
+        
+        // 执行
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 更新失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     [[nodiscard]] int getLatestGid() const {
@@ -391,7 +753,7 @@ public:
         }
 
         // 构造 SQL 查询语句，统计指定 uuid 的商品数量
-        std::string sql = "SELECT COUNT(*) FROM GOODS WHERE uuid = '" + uuid + "';";
+        std::string sql = "SELECT COUNT(*) FROM GOODS WHERE uuid = ?;";
         sqlite3_stmt* stmt;
         rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
         if (rc != SQLITE_OK) {
@@ -399,6 +761,9 @@ public:
             sqlite3_close(db);
             return -1; // SQL 准备失败，返回 -1
         }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, uuid.c_str(), -1, SQLITE_STATIC);
 
         int goodsCount = 0;
         if (sqlite3_step(stmt) == SQLITE_ROW) {
@@ -418,25 +783,165 @@ public:
     ///////////////////// COMMENT 表操作 /////////////////////
 
     [[nodiscard]] int addComment(int cid, const std::string &seller, const std::string &uuid, const std::string &time, const std::string &message) const {
-        std::string sql = "INSERT INTO COMMENT (cid, pid, uuid, time, message) VALUES ("+
-                          std::to_string(cid) + ",'" +
-                          seller + "', '" + uuid + "', '" + time + "', '" + message + "');";
-        return executeSQL(sql);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "INSERT INTO COMMENT (cid, seller, uuid, time, message) VALUES (?, ?, ?, ?, ?);";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_int(stmt, 1, cid);
+        sqlite3_bind_text(stmt, 2, seller.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, uuid.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 4, time.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 5, message.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 插入失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     [[nodiscard]] int deleteComment(int cid) const {
-        std::string sql = "DELETE FROM COMMENT WHERE cid = " + std::to_string(cid) + ";";
-        return executeSQL(sql);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "DELETE FROM COMMENT WHERE cid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_int(stmt, 1, cid);
+        
+        // 执行
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 删除失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     int getComment(int cid, std::vector<std::map<std::string, std::string>> &result) const {
-        std::string sql = "SELECT * FROM COMMENT WHERE cid = " + std::to_string(cid) + ";";
-        return querySQL(sql, result);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "SELECT * FROM COMMENT WHERE cid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_int(stmt, 1, cid);
+        
+        // 执行查询并处理结果
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            std::map<std::string, std::string> row;
+            for (int i = 0; i < sqlite3_column_count(stmt); i++) {
+                const char* colName = sqlite3_column_name(stmt, i);
+                const char* colValue = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i));
+                row[colName] = colValue ? colValue : "NULL";
+            }
+            result.push_back(row);
+        }
+        
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 查询失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     int getCommentBySeller(const std::string& seller_uuid, std::vector<std::map<std::string, std::string>> &result) const {
-        std::string sql = "SELECT * FROM COMMENT WHERE seller = '" + seller_uuid + "';";
-        return querySQL_many(sql, result);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "SELECT * FROM COMMENT WHERE seller = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, seller_uuid.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行查询并处理结果
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            std::map<std::string, std::string> row;
+            for (int i = 0; i < sqlite3_column_count(stmt); i++) {
+                const char* colName = sqlite3_column_name(stmt, i);
+                const char* colValue = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i));
+                row[colName] = colValue ? colValue : "NULL";
+            }
+            result.push_back(row);
+        }
+        
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 查询失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     [[nodiscard]] int getLatestCommentId() const {
@@ -468,29 +973,209 @@ public:
     ///////////////////// RECORD 表操作 /////////////////////
 
     [[nodiscard]] int addRecord(const std::string &uuid, const std::string &seller, const std::string &buyer, const std::string &time, const std::string &goods) const {
-        std::string sql = "INSERT INTO RECORD (uuid, seller, buyer, time, goods) VALUES ('" +
-            uuid + "','" + seller + "', '" + buyer + "', '" + time + "', '" + goods + "');";
-        return executeSQL(sql);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "INSERT INTO RECORD (uuid, seller, buyer, time, goods) VALUES (?, ?, ?, ?, ?);";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, uuid.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 2, seller.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 3, buyer.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 4, time.c_str(), -1, SQLITE_STATIC);
+        sqlite3_bind_text(stmt, 5, goods.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 插入失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     [[nodiscard]] int deleteRecord(const std::string &uuid) const {
-        std::string sql = "DELETE FROM RECORD WHERE uuid = '" + uuid + "';";
-        return executeSQL(sql);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "DELETE FROM RECORD WHERE uuid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, uuid.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行
+        rc = sqlite3_step(stmt);
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 删除失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     int getRecord(const std::string &cid, std::vector<std::map<std::string, std::string>> &result) const {
-        std::string sql = "SELECT * FROM RECORD WHERE uuid = '" + cid + "';";
-        return querySQL(sql, result);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "SELECT * FROM RECORD WHERE uuid = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, cid.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行查询并处理结果
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            std::map<std::string, std::string> row;
+            for (int i = 0; i < sqlite3_column_count(stmt); i++) {
+                const char* colName = sqlite3_column_name(stmt, i);
+                const char* colValue = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i));
+                row[colName] = colValue ? colValue : "NULL";
+            }
+            result.push_back(row);
+        }
+        
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 查询失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     int getRecordBySeller(const std::string& seller_uuid, std::vector<std::map<std::string, std::string>> &result) const {
-        std::string sql = "SELECT * FROM RECORD WHERE seller = '" + seller_uuid + "';";
-        return querySQL_many(sql, result);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "SELECT * FROM RECORD WHERE seller = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, seller_uuid.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行查询并处理结果
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            std::map<std::string, std::string> row;
+            for (int i = 0; i < sqlite3_column_count(stmt); i++) {
+                const char* colName = sqlite3_column_name(stmt, i);
+                const char* colValue = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i));
+                row[colName] = colValue ? colValue : "NULL";
+            }
+            result.push_back(row);
+        }
+        
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 查询失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     int getRecordByBuyer(const std::string& buyer_uuid, std::vector<std::map<std::string, std::string>> &result) const {
-        std::string sql = "SELECT * FROM RECORD WHERE buyer = '" + buyer_uuid + "';";
-        return querySQL_many(sql, result);
+        sqlite3* db;
+        int rc = sqlite3_open(db_filename.c_str(), &db);
+        if (rc) {
+            std::cerr << "无法打开数据库: " << sqlite3_errmsg(db) << std::endl;
+            return rc;
+        }
+        
+        std::string sql = "SELECT * FROM RECORD WHERE buyer = ?;";
+        
+        sqlite3_stmt* stmt;
+        rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &stmt, nullptr);
+        if (rc != SQLITE_OK) {
+            std::cerr << "SQL 预处理失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        // 绑定参数
+        sqlite3_bind_text(stmt, 1, buyer_uuid.c_str(), -1, SQLITE_STATIC);
+        
+        // 执行查询并处理结果
+        while ((rc = sqlite3_step(stmt)) == SQLITE_ROW) {
+            std::map<std::string, std::string> row;
+            for (int i = 0; i < sqlite3_column_count(stmt); i++) {
+                const char* colName = sqlite3_column_name(stmt, i);
+                const char* colValue = reinterpret_cast<const char *>(sqlite3_column_text(stmt, i));
+                row[colName] = colValue ? colValue : "NULL";
+            }
+            result.push_back(row);
+        }
+        
+        if (rc != SQLITE_DONE) {
+            std::cerr << "SQL 查询失败: " << sqlite3_errmsg(db) << std::endl;
+            sqlite3_finalize(stmt);
+            sqlite3_close(db);
+            return rc;
+        }
+        
+        sqlite3_finalize(stmt);
+        sqlite3_close(db);
+        return SQLITE_OK;
     }
 
     //数据库工具
@@ -679,4 +1364,3 @@ private:
 };
 
 #endif // FREEMARKET_DATABASE_H
-

@@ -21,8 +21,6 @@
 #include <endstone/form/modal_form.h>
 #include <endstone/server.h>
 #include <endstone/event/player/player_interact_event.h>
-#include <endstone/lang/translatable.h>
-#include <endstone/lang/language.h>
 
 using json = nlohmann::json;
 
@@ -682,18 +680,18 @@ public:
 
         auto userdata = market.user_get(player.getUniqueId().str());
         if (!userdata.status) {
-            menu.addButton(Tran.getLocal("§l§5Register Account"),"textures/ui/icon_steve",[=](endstone::Player *p) {
+            menu.addButton(Tran.getLocal("§l§5Register Account"),"textures/ui/icon_steve",[this](endstone::Player *p) {
                 register_menu(*p);});
         }
         else {
-            menu.addButton(Tran.getLocal("§l§5Account Information"),userdata.avatar,[=](endstone::Player *p) {
+            menu.addButton(Tran.getLocal("§l§5Account Information"),userdata.avatar,[this](endstone::Player *p) {
                 account_menu(*p);});
-            menu.addButton(Tran.getLocal("§l§5Trading Market"),"textures/ui/teams_icon",[=](endstone::Player *p) {
+            menu.addButton(Tran.getLocal("§l§5Trading Market"),"textures/ui/teams_icon",[this](endstone::Player *p) {
                 market_display_menu(*p);});
-            menu.addButton(Tran.getLocal("§l§5Add Items to Market"),"textures/ui/icon_blackfriday",[=](endstone::Player*p){
+            menu.addButton(Tran.getLocal("§l§5Add Items to Market"),"textures/ui/icon_blackfriday",[this](endstone::Player*p){
                 goods_upload_menu(*p);
             });
-            menu.addButton(Tran.getLocal("§l§5Manage goods"),"textures/ui/icon_setting",[=](endstone::Player*p){
+            menu.addButton(Tran.getLocal("§l§5Manage goods"),"textures/ui/icon_setting",[this](endstone::Player*p){
                 choose_manage_goods_menu(*p);
             });
         }
@@ -740,7 +738,7 @@ public:
                              (void)p->performCommand(command);
                          });
 
-        menu.setOnClose([=](endstone::Player* p){
+        menu.setOnClose([this](endstone::Player* p){
             main_menu(*p);
         });
         player.sendForm(menu);
@@ -755,34 +753,34 @@ public:
         endstone::Button change_avatar;
         change_avatar.setIcon("textures/ui/icon_multiplayer");
         change_avatar.setText(Tran.getLocal("Change account avatar"));
-        change_avatar.setOnClick([=](endstone::Player *p){
+        change_avatar.setOnClick([this](endstone::Player *p){
             player_avatar_menu(*p);
         });
         //重命名
         endstone::Button rename;
         rename.setText(Tran.getLocal("Rename account"));
         rename.setIcon("textures/ui/book_edit_default");
-        rename.setOnClick([=](endstone::Player* p){
+        rename.setOnClick([this](endstone::Player* p){
             player_rename_menu(*p);
         });
         //货款提现
         endstone::Button get_payment;
         get_payment.setText(Tran.getLocal("Withdraw the payment"));
         get_payment.setIcon("textures/ui/trade_icon");
-        get_payment.setOnClick([=](endstone::Player* p){
+        get_payment.setOnClick([this](endstone::Player* p){
             get_item_to_player_menu(*p);
         });
         //交易记录
         endstone::Button record;
         record.setText(Tran.getLocal("Transaction Records"));
         record.setIcon("textures/ui/icon_timer");
-        record.setOnClick([=](endstone::Player* p){
+        record.setOnClick([this](endstone::Player* p){
             recordMainMenu(*p);
         });
 
         menu.setControls({change_avatar,rename,get_payment,record});
 
-        menu.setOnClose([=](endstone::Player* p){
+        menu.setOnClose([this](endstone::Player* p){
             main_menu(*p);
         });
         int money;
@@ -815,7 +813,7 @@ public:
         menu.addControl(dropdown);
         menu.addControl(textInput);
         //修改逻辑
-        menu.setOnSubmit([=](endstone::Player *p,const string& response) {
+        menu.setOnSubmit([=,this](endstone::Player *p,const string& response) {
             auto parsedResponse = json::parse(response);
             string custom = parsedResponse[2];
             int avatar_index = parsedResponse[1];
@@ -837,13 +835,13 @@ public:
             }
             auto status = market.user_change_avatar(p->getUniqueId().str(),avatar);
             if (status.first) {
-                notice_menu(*p,Tran.getLocal(status.second),[this](endstone::Player& p) { this->account_menu(p);});
+                notice_menu(*p,Tran.getLocal(status.second),[this](endstone::Player& pp) { account_menu(pp);});
             } else {
                 notice_menu(*p,endstone::ColorFormat::Red+Tran.getLocal(status.second),[this](endstone::Player& p) { this->account_menu(p);});
             }
         });
 
-        menu.setOnClose([=](endstone::Player* p){
+        menu.setOnClose([this](endstone::Player* p){
             account_menu(*p);
         });
 
@@ -865,7 +863,7 @@ public:
         menu.addControl(label);
         menu.addControl(textInput);
         //修改逻辑
-        menu.setOnSubmit([=](endstone::Player *p,const string& response) {
+        menu.setOnSubmit([this](endstone::Player *p,const string& response) {
             auto parsedResponse = json::parse(response);
             string name = parsedResponse[1];
             if (name.empty()) {
@@ -873,13 +871,13 @@ public:
             }
             auto status = market.user_rename(p->getUniqueId().str(),name);
             if (status.first) {
-                notice_menu(*p,Tran.getLocal(status.second),[this](endstone::Player& p) { this->account_menu(p);});
+                notice_menu(*p,Tran.getLocal(status.second),[this](endstone::Player& pp) { account_menu(pp);});
             } else {
                 notice_menu(*p,endstone::ColorFormat::Red+Tran.getLocal(status.second),[this](endstone::Player& p) { this->account_menu(p);});
             }
         });
 
-        menu.setOnClose([=](endstone::Player* p){
+        menu.setOnClose([this](endstone::Player* p){
             account_menu(*p);
         });
         player.sendForm(menu);
@@ -930,7 +928,7 @@ public:
         chose_item.setOptions(quick_items_name);
         menu.addControl(chose_item);
 
-        menu.setOnSubmit([=](endstone::Player*p,const string& response){
+        menu.setOnSubmit([this, quick_items](endstone::Player*p,const string& response){
             auto json_response = json::parse(response);
             int item_index = json_response[0];
             const auto& the_item = quick_items[item_index];
@@ -940,7 +938,7 @@ public:
             }
             goods_upload_confirm_menu(*p,the_item,item_index);
         });
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this](endstone::Player*p){
             main_menu(*p);
         });
         player.sendForm(menu);
@@ -989,7 +987,7 @@ public:
 
         menu.setControls({title,text,money_type,custom_money,price_Input,image_drop,tag_drop});
 
-        menu.setOnSubmit([=](endstone::Player*p,const string& response){
+        menu.setOnSubmit([this, item_data, quick_index, image_opt, money_list, tag_opt](endstone::Player*p,const string& response){
             auto json_response = json::parse(response);
             string the_title = json_response[0];
             string the_text = json_response[1];
@@ -1048,7 +1046,7 @@ public:
             p->getInventory().setItem(quick_index,air);
             getServer().broadcastMessage("§l§2"+Tran.getLocal("[Marketing Promotion] New goods have been listed: ")+"§r"+the_title);
         });
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this](endstone::Player*p){
             goods_upload_menu(*p);
         });
         player.sendForm(menu);
@@ -1058,7 +1056,7 @@ public:
     void market_display_menu(endstone::Player& player) {
         endstone::ActionForm menu;
         menu.setTitle(Tran.getLocal("Market"));
-        menu.addButton("\uE021 " + endstone::ColorFormat::MaterialDiamond+Tran.getLocal("§lSearch")+" \uE021",nullopt,[=](endstone::Player* p){
+        menu.addButton("\uE021 " + endstone::ColorFormat::MaterialDiamond+Tran.getLocal("§lSearch")+" \uE021",nullopt,[this](endstone::Player* p){
             search_goods_menu(*p);
         });
         auto goods_data = market.goods_get_all();
@@ -1066,12 +1064,12 @@ public:
             menu.setContent(Tran.getLocal("No goods are currently for sale"));
         } else {
             for (auto & goods : std::ranges::reverse_view(goods_data)) { // 使用反向迭代器
-                menu.addButton(goods.name, goods.image, [=](endstone::Player* p) {
+                menu.addButton(goods.name, goods.image, [this, goods](endstone::Player* p) {
                     goods_view_menu(*p, goods);
                 });
             }
         }
-        menu.setOnClose([=](endstone::Player* p){
+        menu.setOnClose([this](endstone::Player* p){
             main_menu(*p);
         });
         player.sendForm(menu);
@@ -1132,7 +1130,7 @@ public:
 
         confirm_buy.setText(Tran.getLocal("Buy it"));
         confirm_buy.setIcon("textures/ui/confirm");
-        confirm_buy.setOnClick([=](endstone::Player*p){
+        confirm_buy.setOnClick([this, goods_data](endstone::Player*p){
             confirm_to_buy_menu(*p,goods_data);
         });
 
@@ -1140,14 +1138,14 @@ public:
             endstone::Button seller_home_page;
             seller_home_page.setText(Tran.getLocal("Seller homepage"));
             seller_home_page.setIcon(seller_data.avatar);
-            seller_home_page.setOnClick([=](endstone::Player* p){
+            seller_home_page.setOnClick([this, seller_data](endstone::Player* p){
                 seller_homepage(*p,seller_data);
             });
             menu.setControls({seller_home_page,goods_info,buyer_info,confirm_buy});
         } else {
             menu.setControls({buyer_info,confirm_buy});
         }
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this](endstone::Player*p){
             market_display_menu(*p);
         });
         player.sendForm(menu);
@@ -1161,7 +1159,7 @@ public:
         menu.setButton2(Tran.getLocal("No,I don't want to buy it"));
         menu.setContent(Tran.getLocal("Confirm to buy it?"));
 
-        menu.setOnSubmit([=](endstone::Player* p,int chose){
+        menu.setOnSubmit([this, goods_data](endstone::Player* p,int chose){
             if (chose == 0) {
                 //确认购买
 
@@ -1260,7 +1258,7 @@ public:
                 goods_view_menu(*p,goods_data);
             }
         });
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this, goods_data](endstone::Player*p){
             goods_view_menu(*p,goods_data);
         });
         player.sendForm(menu);
@@ -1305,7 +1303,7 @@ public:
         endstone::Label context;
         context.setText(Tran.getLocal("Your payment: ") +"\n"+display_info);
         menu.setControls({context});
-        menu.setOnSubmit([=](endstone::Player* p,const string& response){
+        menu.setOnSubmit([this](endstone::Player* p,const string& response){
             const auto update_user_items = UserItemRead(p->getUniqueId().str());
             for (const auto& one_user_item:update_user_items) {
                 endstone::ItemStack itemStack(one_user_item.item_id,one_user_item.item_num);
@@ -1331,7 +1329,7 @@ public:
             (void)market.user_clear_item(p->getUniqueId().str());
             notice_menu(*p,Tran.getLocal("The withdrawal is complete"),[this](endstone::Player& p){ account_menu(p);});
         });
-        menu.setOnClose([=](endstone::Player *p){
+        menu.setOnClose([this](endstone::Player *p){
             account_menu(*p);
         });
         player.sendForm(menu);
@@ -1356,13 +1354,13 @@ public:
         goods_list.setLabel(Tran.getLocal("Choose goods to manage"));
         goods_list.setOptions(goods_name_list);
         menu.setControls({goods_list});
-        menu.setOnSubmit([=](endstone::Player* p,const string& response){
+        menu.setOnSubmit([this, all_user_goods](endstone::Player* p,const string& response){
             auto json_response = json::parse(response);
             int goods_index = json_response[0];
             const auto& the_goods_data = all_user_goods[goods_index];
             manage_goods_menu(*p,the_goods_data);
         });
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this](endstone::Player*p){
             main_menu(*p);
         });
         player.sendForm(menu);
@@ -1376,15 +1374,15 @@ public:
         endstone::Button del_button;
 
         edit_button.setText(Tran.getLocal("Edit goods info"));
-        edit_button.setOnClick([=](endstone::Player*p){
+        edit_button.setOnClick([this, goods_data](endstone::Player*p){
             edit_goods_menu(*p,goods_data);
         });
 
         del_button.setText(Tran.getLocal("Delete goods and return it"));
-        del_button.setOnClick([=](endstone::Player* p){
+        del_button.setOnClick([this, goods_data](endstone::Player* p){
             del_goods_menu(*p,goods_data);
         });
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this](endstone::Player*p){
             main_menu(*p);
         });
         menu.setControls({edit_button,del_button});
@@ -1398,7 +1396,7 @@ public:
         menu.setContent(Tran.getLocal("Are you sure to delete it?"));
         menu.setButton1(Tran.getLocal("Yes,delete it and return it"));
         menu.setButton2(Tran.getLocal("No,I don't want to delete it"));
-        menu.setOnSubmit([=](endstone::Player* p,int bt_i){
+        menu.setOnSubmit([this, goods_data](endstone::Player* p,int bt_i){
             if (bt_i == 0) {
                 auto update_goods_data = market.goods_get_by_gid(goods_data.gid);
                 if (!update_goods_data.status) {
@@ -1431,7 +1429,7 @@ public:
                     }
             }
         });
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this, goods_data](endstone::Player*p){
             manage_goods_menu(*p,goods_data);
         });
         player.sendForm(menu);
@@ -1470,7 +1468,7 @@ public:
 
         menu.setControls({title_input,text_input,image_drop,image_custom,tag_drop});
 
-        menu.setOnSubmit([=](endstone::Player*p,const string& response){
+        menu.setOnSubmit([this, goods_data, image_opt, tag_opt](endstone::Player*p,const string& response){
             auto json_response = json::parse(response);
             string the_title = json_response[0];
             string the_text = json_response[1];
@@ -1478,7 +1476,7 @@ public:
             string custom_image = json_response[3];
             int tag_index = json_response[4];
             if (the_title.empty()||the_text.empty()||(image_index == 3 && custom_image.empty())) {
-                notice_menu(*p,endstone::ColorFormat::Red + Tran.getLocal("Title and description can not be empty,and when you select custom cover,custom cover can not be empty"),[this](endstone::Player& p) { this->main_menu(p);});
+                notice_menu(*p,endstone::ColorFormat::Red + Tran.getLocal("Title and description can not be empty,and when you select custom cover,custom cover can not be empty"),[this](endstone::Player& pp) { main_menu(pp);});
                 return;
             }
             //check_goods_exist
@@ -1499,7 +1497,7 @@ public:
                 notice_menu(*p,endstone::ColorFormat::Red+Tran.getLocal(status.second),[this](endstone::Player& p) { this->choose_manage_goods_menu(p);});
                 }
         });
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this, goods_data](endstone::Player*p){
             manage_goods_menu(*p,goods_data);
         });
         player.sendForm(menu);
@@ -1526,11 +1524,11 @@ public:
         menu.addDivider();
         menu.addLabel(Tran.getLocal("Seller goods: ")+"\n");
         for (const auto& one_goods:seller_all_goods) {
-            menu.addButton(one_goods.name,one_goods.image,[=](endstone::Player*p){
+            menu.addButton(one_goods.name,one_goods.image,[this, one_goods](endstone::Player*p){
                 goods_view_menu(*p,one_goods);
             });
         }
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this](endstone::Player*p){
             market_display_menu(*p);
         });
         player.sendForm(menu);
@@ -1549,13 +1547,13 @@ public:
         vector<string> tag_name_opt = {Tran.getLocal("All"),Tran.getLocal("Food"),Tran.getLocal("Tools & Equipment"),Tran.getLocal("Ore"),Tran.getLocal("Block"),Tran.getLocal("Other")};
         tag_dropdown.setOptions(tag_name_opt);
         menu.setControls({search_text_input,tag_dropdown});
-        menu.setOnSubmit([=](endstone::Player* p,const string& response){
+        menu.setOnSubmit([this, tag_opt](endstone::Player* p,const string& response){
             auto json_response = json::parse(response);
             string search_text = json_response[0];
             int tag_index = json_response[1];
             display_search_result_menu(*p,search_text,tag_opt[tag_index]);
         });
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this](endstone::Player*p){
             market_display_menu(*p);
         });
         player.sendForm(menu);
@@ -1574,7 +1572,7 @@ public:
             auto all_goods = market.goods_get_all();
             for (const auto& one_goods:all_goods) {
                 if (one_goods.tag == tag || tag == "All") {
-                    menu.addButton(one_goods.name,one_goods.image,[=](endstone::Player* p){
+                    menu.addButton(one_goods.name,one_goods.image,[this, one_goods](endstone::Player* p){
                         goods_view_menu(*p,one_goods);
                     });
                 }
@@ -1585,13 +1583,13 @@ public:
             auto all_goods = market.goods_get_all();
             for (const auto& one_goods:all_goods) {
                 if ((one_goods.tag == tag || tag == "All") && one_goods.name.find(search_text) != string::npos) {
-                    menu.addButton(one_goods.name,one_goods.image,[=](endstone::Player* p){
+                    menu.addButton(one_goods.name,one_goods.image,[this, one_goods](endstone::Player* p){
                         goods_view_menu(*p,one_goods);
                     });
                 }
             }
         }
-        menu.setOnClose([=](endstone::Player*p){
+        menu.setOnClose([this](endstone::Player*p){
             search_goods_menu(*p);
         });
         player.sendForm(menu);
@@ -1619,14 +1617,14 @@ public:
         seller_record.setText(Tran.getLocal("Sell Records"));
         buyer_record.setText(Tran.getLocal("Buy Records"));
         menu.setTitle(Tran.getLocal("Transaction Records"));
-        seller_record.setOnClick([=](endstone::Player* p) {
+        seller_record.setOnClick([this](endstone::Player* p) {
             recordSellerMenu(*p);
         });
-        buyer_record.setOnClick([=](endstone::Player* p) {
+        buyer_record.setOnClick([this](endstone::Player* p) {
             recordBuyerMenu(*p);
         });
         menu.setControls({seller_record,buyer_record});
-        menu.setOnClose([=](endstone::Player *p) {
+        menu.setOnClose([this](endstone::Player *p) {
             account_menu(*p);
         } );
         player.sendForm(menu);
@@ -1675,7 +1673,7 @@ public:
                             +Tran.getLocal("Price: ")+to_string(goods_data.price)+"\n"+Tran.getLocal("Currency: ")+Tran.getLocal(goods_data.money_type)+"\n");
 
         menu.setControls({record_time,seller,buyer,goods_info});
-        menu.setOnClose([=](endstone::Player* p) {
+        menu.setOnClose([this](endstone::Player* p) {
             recordMainMenu(*p);
         });
         player.sendForm(menu);
@@ -1690,12 +1688,12 @@ public:
         }
         endstone::ActionForm menu;
         for (const auto& record : std::ranges::reverse_view(records)) {
-            menu.addButton(record.time,nullopt,[=](endstone::Player* p) {
+            menu.addButton(record.time,nullopt,[this, record](endstone::Player* p) {
                 recordDisplayMenu(*p,record);
             });
         }
         menu.setTitle(Tran.getLocal("Sell Records"));
-        menu.setOnClose([=](endstone::Player* p) {
+        menu.setOnClose([this](endstone::Player* p) {
             recordSellerMenu(*p);
         });
         player.sendForm(menu);
@@ -1710,12 +1708,12 @@ public:
         }
         endstone::ActionForm menu;
         for (const auto& record : std::ranges::reverse_view(records)) {
-            menu.addButton(record.time,nullopt,[=](endstone::Player* p) {
+            menu.addButton(record.time,nullopt,[this, record](endstone::Player* p) {
                 recordDisplayMenu(*p,record);
             });
         }
         menu.setTitle(Tran.getLocal("Buy Records"));
-        menu.setOnClose([=](endstone::Player* p) {
+        menu.setOnClose([this](endstone::Player* p) {
             recordSellerMenu(*p);
         });
         player.sendForm(menu);
