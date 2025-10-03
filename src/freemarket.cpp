@@ -4,14 +4,14 @@
 
 #include "freemarket.h"
 
-ENDSTONE_PLUGIN("freemarket", "0.1.2dev1", FreeMarket)
+ENDSTONE_PLUGIN("freemarket", "0.1.2", FreeMarket)
 {
     description = "An Endstone plugin for player to use in free market trading";
 
     command("market")
             .description("Open market menu")
             .usages("/market",
-                    "/market <register> <username: message> [avatar: message]",
+                    "/market <register> <username: str> [avatar: str]",
                     "/market <money> <add|less> <player:target> <money: int>"
                     )
             .permissions("fm.command.member");
