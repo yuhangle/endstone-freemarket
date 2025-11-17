@@ -4,8 +4,6 @@
 #ifndef FREEMARKET_H
 #define FREEMARKET_H
 
-#include <endstone/plugin/plugin.h>
-#include <endstone/inventory/meta/item_meta.h>
 #include <iostream>
 #include <fstream>
 #include <ranges>
@@ -15,12 +13,6 @@
 #include "market_action.h"
 #include "translate.h"
 #include <nlohmann/json.hpp>
-#include <endstone/form/form.h>
-#include <endstone/form/action_form.h>
-#include <endstone/player.h>
-#include <endstone/form/modal_form.h>
-#include <endstone/server.h>
-#include <endstone/event/player/player_interact_event.h>
 
 using json = nlohmann::json;
 
