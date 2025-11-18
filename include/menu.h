@@ -244,8 +244,7 @@ public:
 
     //商品上传菜单
     void goods_upload_menu(endstone::Player& player) {
-        int player_goods_amount = Database.getGoodsCountByUuid(player.getUniqueId().str());
-        if (player_goods_amount > player_max_goods || player_goods_amount < 0) {
+        if (const int player_goods_amount = Database.getGoodsCountByUuid(player.getUniqueId().str()); player_goods_amount > player_max_goods || player_goods_amount < 0) {
             notice_menu(player,Tran.getLocal("You have reached the maximum limit for your goods"),[this](endstone::Player& p) { this->main_menu(p);});
             return;
         }
@@ -254,27 +253,27 @@ public:
         vector<ItemData> quick_items;
         vector<string> quick_items_name;
         for (int i = 0;i <= 8;i++) {
-            if (auto one_item = player.getInventory().getItem(i)) {
-                auto meta = one_item->getItemMeta();
+            if (const auto one_item = player.getInventory().getItem(i)) {
+                const auto meta = one_item->getItemMeta();
                 //存在meta数据
                 if (one_item->hasItemMeta()){
                     //附魔情况
                     if (meta->hasEnchants()) {
-                        quick_items.push_back({string(one_item->getType().getId()),one_item->getAmount(), Meta_data{meta->getLore(),meta->getDamage(),meta->getDisplayName(),meta->getEnchants()}});
-                        quick_items_name.push_back(to_string(i+1) + ". "+ Tran.getLocal("Item ID: ") + string(one_item->getType().getId()) + Tran.getLocal("Number: ") +
+                        quick_items.push_back({string(one_item->getType().getKey()),one_item->getAmount(), Meta_data{meta->getLore(),meta->getDamage(),meta->getDisplayName(),MarketCore::EnchantToSimMap(meta->getEnchants())}});
+                        quick_items_name.push_back(to_string(i+1) + ". "+ Tran.getLocal("Item ID: ") + string(one_item->getType().getKey()) + Tran.getLocal("Number: ") +
                                                            to_string(one_item->getAmount()));
                     }
                     //无附魔
                     else {
-                        quick_items.push_back({string(one_item->getType().getId()),one_item->getAmount(), Meta_data{meta->getLore(),meta->getDamage(),meta->getDisplayName()}});
-                        quick_items_name.push_back(to_string(i+1) + ". "+ Tran.getLocal("Item ID: ") + string(one_item->getType().getId()) + Tran.getLocal("Number: ") +
+                        quick_items.push_back({string(one_item->getType().getKey()),one_item->getAmount(), Meta_data{meta->getLore(),meta->getDamage(),meta->getDisplayName()}});
+                        quick_items_name.push_back(to_string(i+1) + ". "+ Tran.getLocal("Item ID: ") + string(one_item->getType().getKey()) + Tran.getLocal("Number: ") +
                                                            to_string(one_item->getAmount()));
                     }
                 }
                 //不存在meta数据
                 else {
-                    quick_items.push_back({string(one_item->getType().getId()),one_item->getAmount(), nullopt});
-                    quick_items_name.push_back(to_string(i+1) + ". " + Tran.getLocal("Item ID: ") + string(one_item->getType().getId()) + Tran.getLocal("Number: ") +
+                    quick_items.push_back({string(one_item->getType().getKey()),one_item->getAmount(), nullopt});
+                    quick_items_name.push_back(to_string(i+1) + ". " + Tran.getLocal("Item ID: ") + string(one_item->getType().getKey()) + Tran.getLocal("Number: ") +
                                                                             to_string(one_item->getAmount()));
                 }
             } else {
@@ -288,7 +287,7 @@ public:
 
         menu.setOnSubmit([this, quick_items](endstone::Player*p,const string& response){
             auto json_response = json::parse(response);
-            int item_index = json_response[0];
+            const int item_index = json_response[0];
             const auto& the_item = quick_items[item_index];
             if (the_item.item_id == "None") {
                 notice_menu(*p,Tran.getLocal("You have not selected a valid item"),[this](endstone::Player& p) { this->main_menu(p);});
@@ -462,19 +461,19 @@ public:
         if (!goods_data.data.empty()) {
             Meta_data goods_meta = MarketCore::StringToItemMeta(goods_data.data);
             dis_goods_meta += Tran.getLocal("Item damage: ")+to_string(goods_meta.damage);
-            if (goods_meta.display_name.has_value()) {
-                dis_goods_meta += "\n" + Tran.getLocal("Name tag: ")+goods_meta.display_name.value();
+            if (!goods_meta.display_name.empty()) {
+                dis_goods_meta += "\n" + Tran.getLocal("Name tag: ")+goods_meta.display_name;
             }
             dis_goods_meta += "§r";
-            if (goods_meta.lore.has_value()) {
+            if (!goods_meta.lore.empty()) {
                 dis_goods_meta += "\n lore: ";
-                for (const auto& one_lore:goods_meta.lore.value()) {
+                for (const auto& one_lore:goods_meta.lore) {
                     dis_goods_meta += one_lore+", ";
                 }
             }
-            if (goods_meta.enchants.has_value()) {
+            if (!goods_meta.enchants.empty()) {
                 dis_goods_meta += "\n" + Tran.getLocal("Enchant: ");
-                for (const auto&[fst, snd]:goods_meta.enchants.value()) {
+                for (const auto&[fst, snd]:goods_meta.enchants) {
                     dis_goods_meta += fst + ":" + to_string(snd)+", ";
                 }
             }
@@ -548,9 +547,11 @@ public:
                         meta->setDamage(itemData.item_meta->damage);
                         meta->setDisplayName(itemData.item_meta->display_name);
                         //有附魔
-                        if (itemData.item_meta->enchants.has_value()) {
-                            for (const auto &one_enchant:itemData.item_meta->enchants.value()) {
-                                meta->addEnchant(one_enchant.first, one_enchant.second,false);
+                        if (!itemData.item_meta->enchants.empty()) {
+                            for (const auto &[fst, snd]:itemData.item_meta->enchants) {
+                                 endstone::EnchantmentId enchantID = endstone::EnchantmentId::minecraft(fst);
+                                (void)meta->addEnchant(enchantID, snd,false);
+                                cout << fst << ":" << snd << endl;
                             }
                         }
                         // 将 meta 应用到 new_item
@@ -586,9 +587,9 @@ public:
                         meta->setDamage(itemData.item_meta->damage);
                         meta->setDisplayName(itemData.item_meta->display_name);
                         //有附魔
-                        if (itemData.item_meta->enchants.has_value()) {
-                            for (const auto &one_enchant:itemData.item_meta->enchants.value()) {
-                                meta->addEnchant(one_enchant.first, one_enchant.second,false);
+                        if (!itemData.item_meta->enchants.empty()) {
+                            for (const auto &[fst, snd]:itemData.item_meta->enchants) {
+                                (void)meta->addEnchant(fst, snd,false);
                             }
                         }
                         // 将 meta 应用到 new_item
@@ -644,19 +645,19 @@ public:
             if (one_item.item_meta.has_value()) {
                 Meta_data goods_meta = one_item.item_meta.value();
                 dis_goods_meta += Tran.getLocal("Item damage: ")+to_string(goods_meta.damage);
-                if (goods_meta.display_name.has_value()) {
-                    dis_goods_meta += "\n" + Tran.getLocal("Name tag: ")+goods_meta.display_name.value();
+                if (!goods_meta.display_name.empty()) {
+                    dis_goods_meta += "\n" + Tran.getLocal("Name tag: ")+goods_meta.display_name;
                 }
                 dis_goods_meta += "§r";
-                if (goods_meta.lore.has_value()) {
+                if (!goods_meta.lore.empty()) {
                     dis_goods_meta += "\n lore: ";
-                    for (const auto& one_lore:goods_meta.lore.value()) {
+                    for (const auto& one_lore:goods_meta.lore) {
                         dis_goods_meta += one_lore+", ";
                     }
                 }
-                if (goods_meta.enchants.has_value()) {
+                if (!goods_meta.enchants.empty()) {
                     dis_goods_meta += "\n" + Tran.getLocal("Enchant: ");
-                    for (const auto&[fst, snd]:goods_meta.enchants.value()) {
+                    for (const auto&[fst, snd]:goods_meta.enchants) {
                         dis_goods_meta += fst + ":" + to_string(snd)+", ";
                     }
                 }
@@ -678,9 +679,9 @@ public:
                     meta->setDamage(meta_value->damage);
                     meta->setDisplayName(meta_value->display_name);
                     //有附魔
-                    if (meta_value->enchants.has_value()) {
-                        for (const auto& one_enchant:meta_value->enchants.value()) {
-                            meta->addEnchant(one_enchant.first, one_enchant.second,false);
+                    if (!meta_value->enchants.empty()) {
+                        for (const auto&[fst, snd]:meta_value->enchants) {
+                            (void)meta->addEnchant(fst, snd,false);
                         }
                     }
                     itemStack.setItemMeta(meta);
@@ -782,9 +783,9 @@ public:
                             meta->setDamage(itemData.item_meta->damage);
                             meta->setDisplayName(itemData.item_meta->display_name);
                             //附魔
-                            if (itemData.item_meta->enchants.has_value()) {
-                                for (const auto &one_enchant: itemData.item_meta->enchants.value()) {
-                                    meta->addEnchant(one_enchant.first,one_enchant.second,false);
+                            if (!itemData.item_meta->enchants.empty()) {
+                                for (const auto &[fst, snd]: itemData.item_meta->enchants) {
+                                    (void)meta->addEnchant(fst,snd,false);
                                 }
                             }
                             itemStack.setItemMeta(meta);
@@ -1019,19 +1020,19 @@ public:
         if (goods_data.data != "None") {
             Meta_data goods_meta = MarketCore::StringToItemMeta(goods_data.data);
             dis_goods_meta += Tran.getLocal("Item damage: ")+to_string(goods_meta.damage);
-            if (goods_meta.display_name.has_value()) {
-                dis_goods_meta += "\n" + Tran.getLocal("Name tag: ")+goods_meta.display_name.value();
+            if (!goods_meta.display_name.empty()) {
+                dis_goods_meta += "\n" + Tran.getLocal("Name tag: ")+goods_meta.display_name;
             }
             dis_goods_meta += "§r";
-            if (goods_meta.lore.has_value()) {
+            if (!goods_meta.lore.empty()) {
                 dis_goods_meta += "\n lore: ";
-                for (const auto& one_lore:goods_meta.lore.value()) {
+                for (const auto& one_lore:goods_meta.lore) {
                     dis_goods_meta += one_lore+", ";
                 }
             }
-            if (goods_meta.enchants.has_value()) {
+            if (!goods_meta.enchants.empty()) {
                 dis_goods_meta += "\n" + Tran.getLocal("Enchant: ");
-                for (const auto&[fst, snd]:goods_meta.enchants.value()) {
+                for (const auto&[fst, snd]:goods_meta.enchants) {
                     dis_goods_meta += fst + ":" + to_string(snd)+", ";
                 }
             }

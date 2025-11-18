@@ -27,10 +27,10 @@ inline DataBase Database(db_file);
 inline Market_Action market(Database);
 //meta数据
 struct Meta_data{
-    std::optional<std::vector<std::string>> lore;//lore数据
+    std::vector<std::string> lore;//lore数据
     int damage{};//耐久损耗
-    std::optional<std::string> display_name;//物品命名
-    std::optional<std::unordered_map< std::string, int >> enchants;//物品附魔
+    std::string display_name;//物品命名
+    std::unordered_map< std::string, int > enchants;//物品附魔
 };
 
 //物品数据
@@ -48,9 +48,8 @@ public:
     [[nodiscard]] bool umoney_check_exists() const {
         if (plugin_.getServer().getPluginManager().getPlugin("umoney")) {
             return true;
-        } else {
-            return false;
         }
+        return false;
     }
     //获取玩家资金
     static int umoney_get_player_money(const std::string& player_name) {
@@ -61,13 +60,11 @@ public:
         }
 
         try {
-            json data = json::parse(f);
-            if (data.contains(player_name)) {
+            if (json data = json::parse(f); data.contains(player_name)) {
                 return data[player_name].get<int>();
-            } else {
-                std::cerr << "Warning: Player '" << player_name << "' not found in the data." << std::endl;
-                return 0; // 返回 0 表示玩家不存在或没有资金记录
             }
+            std::cerr << "Warning: Player '" << player_name << "' not found in the data." << std::endl;
+            return 0; // 返回 0 表示玩家不存在或没有资金记录
         } catch (const json::parse_error& e) {
             std::cerr << "Error: JSON parse error in file '" << umoney_file << "': " << e.what() << std::endl;
             return -1; // 返回一个错误值表示 JSON 解析失败
@@ -119,24 +116,24 @@ public:
     //物品数据转换
     static string ItemMetaToString(const Meta_data& meta_data) {
         string lore;
-        string damage = to_string(meta_data.damage);
+        const string damage = to_string(meta_data.damage);
         string display_name;
         string enchants;
         //名字
-        if (meta_data.display_name.has_value()) {
-            display_name = meta_data.display_name.value();
+        if (!meta_data.display_name.empty()) {
+            display_name = meta_data.display_name;
         } else {
             display_name = "None";
         }
         //lore数据
-        if (meta_data.lore.has_value()) {
-            lore = "{" + DataBase::vectorToString(meta_data.lore.value()) + "}";
+        if (!meta_data.lore.empty()) {
+            lore = "{" + DataBase::vectorToString(meta_data.lore) + "}";
         }else {
             lore = "None";
         }
         //附魔数据
-        if (meta_data.enchants.has_value()) {
-            enchants = "{" + DataBase::enchantsToString(meta_data.enchants.value()) + "}";
+        if (!meta_data.enchants.empty()) {
+            enchants = "{" + DataBase::enchantsToString(meta_data.enchants) + "}";
         } else {
             enchants = "None";
         }
@@ -146,9 +143,9 @@ public:
     //反过来
     static Meta_data StringToItemMeta(const string& data) {
         auto vec = DataBase::splitString(data);
-        std::optional<std::vector<std::string>> lore;
-        optional<std::unordered_map<std::string, int>> enchants;
-        std::optional<string> display_name;
+        std::vector<std::string> lore;
+        std::unordered_map<std::string, int> enchants;
+        string display_name;
 
         //lore数据
         if (string lore_str = vec[0]; lore_str != "None") {
@@ -256,12 +253,21 @@ public:
         return {true,goods_data};
     }
 
+    static std::unordered_map<std::string, int>
+    EnchantToSimMap(const std::unordered_map<const endstone::Enchantment*, int>& enchants) {
+        std::unordered_map<std::string, int> enchant_sim_map;
+        for (const auto& [fst, snd] : enchants) {
+            std::string key{fst->getId().getKey()}; // fst is const Enchantment*
+            enchant_sim_map[key] = snd;
+        }
+        return enchant_sim_map;
+    }
+
     //获取玩家资产
     static int get_player_money(const endstone::Player& player) {
         int buyer_money;
         if (money_config == "freemarket") {
-            auto buyer_data = market.user_get(player.getUniqueId().str());
-            if (buyer_data.status) {
+            if (const auto buyer_data = market.user_get(player.getUniqueId().str()); buyer_data.status) {
                 buyer_money = buyer_data.money;
             } else {
                 buyer_money = 0;
@@ -275,16 +281,13 @@ public:
     //通用转账系统
     [[nodiscard]] bool general_change_money(const string& uuid,const string& playername,int money) const {
         if (money_config == "freemarket") {
-            auto buyer_data = market.user_get(uuid);
-            if (buyer_data.status) {
-                auto status = market.user_money(buyer_data.uuid,buyer_data.money + money);
-                return status.first;
-            } else {
-                return false;
+            if (const auto buyer_data = market.user_get(uuid); buyer_data.status) {
+                const auto [fst, snd] = market.user_money(buyer_data.uuid,buyer_data.money + money);
+                return fst;
             }
-        } else {
-            return umoney_change_player_money(playername,money);
+            return false;
         }
+        return umoney_change_player_money(playername,money);
     }
 
     //检查玩家快捷物品栏中资产并清除
@@ -293,10 +296,10 @@ public:
         int player_own_num = 0;
         for (int i = 0;i <= 35;i++) {
             if (auto the_one = player.getInventory().getItem(i)) {
-                if (the_one->getType().getId() == item_id) {
+                if (the_one->getType().getKey() == item_id) {
                     player_own_num += the_one->getAmount();
                     items.emplace_back(
-                        std::make_pair(the_one->getType().getId(), the_one->getAmount()),
+                        std::make_pair(the_one->getType().getKey(), the_one->getAmount()),
                         i
                     );
                 }
@@ -304,26 +307,25 @@ public:
         }
         if (player_own_num >= item_num) {
             int total = item_num;
-            for (const auto& item_info : items) {
+            for (const auto&[fst, snd] : items) {
                 //剩余总数小于等于0直接返回true(理论上不会执行)
                 if (total <= 0) {
                     return true;
                 }
                 //物品槽位
-                int slot_index = item_info.second;
+                int slot_index = snd;
                 //此槽位物品数
-                int current_amount = item_info.first.second;
                 //槽位物品数少于所需则清空此槽
-                if (current_amount < total) {
+                if (int current_amount = fst.second; current_amount < total) {
                     auto the_one = player.getInventory().getItem(slot_index);
                     ItemData itemData;
                     if (the_one->hasItemMeta()) {
                         auto meta = the_one->getItemMeta();
-                        itemData.item_id = the_one->getType().getId();
+                        itemData.item_id = the_one->getType().getKey();
                         itemData.item_num = current_amount;
-                        itemData.item_meta = {meta->getLore(),meta->getDamage(),meta->getDisplayName(),meta->getEnchants()};
+                        itemData.item_meta = {meta->getLore(),meta->getDamage(),meta->getDisplayName(),EnchantToSimMap(meta->getEnchants())};
                     } else {
-                        itemData.item_id = the_one->getType().getId();
+                        itemData.item_id = the_one->getType().getKey();
                         itemData.item_num = current_amount;
                     }
                     cleared_itemData.push_back(itemData);
@@ -338,11 +340,11 @@ public:
                     ItemData itemData;
                     if (the_item->hasItemMeta()) {
                         auto meta = the_item->getItemMeta();
-                        itemData.item_id = the_item->getType().getId();
+                        itemData.item_id = the_item->getType().getKey();
                         itemData.item_num = total;
-                        itemData.item_meta = {meta->getLore(),meta->getDamage(),meta->getDisplayName(),meta->getEnchants()};
+                        itemData.item_meta = Meta_data{meta->getLore(),meta->getDamage(),meta->getDisplayName(),EnchantToSimMap(meta->getEnchants())};
                     } else {
-                        itemData.item_id = the_item->getType().getId();
+                        itemData.item_id = the_item->getType().getKey();
                         itemData.item_num = total;
                     }
                     //将获取的数据返回去
@@ -365,15 +367,14 @@ public:
 
     // 检查是否允许触发事件
     static bool canTriggerEvent(const string& playername) {
-        auto now = std::chrono::steady_clock::now();
+        const auto now = std::chrono::steady_clock::now();
 
         // 查找玩家的上次触发时间
         if (lastTriggerTime.contains(playername)) {
-            auto lastTime = lastTriggerTime[playername];
-            auto elapsedTime = std::chrono::duration<double>(now - lastTime).count(); // 计算时间差
+            const auto lastTime = lastTriggerTime[playername];
 
             // 如果时间差小于 0.2 秒，不允许触发
-            if (elapsedTime < 0.2) {
+            if (const auto elapsedTime = std::chrono::duration<double>(now - lastTime).count(); elapsedTime < 0.2) {
                 return false;
             }
         }

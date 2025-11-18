@@ -200,8 +200,8 @@ public:
                     try {
                         if (!args[1].empty()) {
                             const string& username = args[1];
-                            string playername = sender.getName();
-                            string uuid = getServer().getPlayer(playername)->getUniqueId().str();
+                            const string playername = sender.getName();
+                            const string uuid = getServer().getPlayer(playername)->getUniqueId().str();
                             if (market.user_exist(uuid)) {
                                 sender.sendErrorMessage(Tran.getLocal("You have already registered and cannot register again"));
                                 return false;
@@ -212,15 +212,15 @@ public:
                             } else {
                                 avatar = args[2];
                             }
-                            auto status = market.user_add(uuid,playername,username,avatar,"",0);
-                            if (status.first) {
-                                sender.sendMessage(Tran.getLocal(status.second));
+                            const auto [fst, snd] = market.user_add(uuid,playername,username,avatar,"",0);
+                            if (fst) {
+                                sender.sendMessage(Tran.getLocal(snd));
                                 return true;
-                            } else {
-                                sender.sendErrorMessage(Tran.getLocal(status.second));
-                                return false;
                             }
-                        } else {sender.sendErrorMessage(Tran.getLocal("Missing parameters"));}
+                            sender.sendErrorMessage(Tran.getLocal(snd));
+                            return false;
+                        }
+                        sender.sendErrorMessage(Tran.getLocal("Missing parameters"));
                     } catch (const std::exception &e) {
                         //返回错误给玩家
                         sender.sendErrorMessage(e.what());
@@ -243,7 +243,7 @@ public:
                                 sender.sendErrorMessage(Tran.getLocal("Invalid integer value"));
                                 return false;
                             }
-                            auto userdata =market.user_get_by_playername(args[2]);
+                            const auto userdata =market.user_get_by_playername(args[2]);
                             if (!userdata.status) {
                                 sender.sendErrorMessage(Tran.getLocal("This player is not registered"));
                                 return false;
@@ -251,16 +251,16 @@ public:
                             if (args[1] == "less") {
                                 money = -money;
                             }
-                            auto status = market.user_money(userdata.uuid,userdata.money + money);
-                            if (status.first) {
-                                sender.sendMessage(Tran.getLocal(status.second));
+                            const auto [fst, snd] = market.user_money(userdata.uuid,userdata.money + money);
+                            if (fst) {
+                                sender.sendMessage(Tran.getLocal(snd));
                                 sender.sendMessage(Tran.getLocal("The player's current money is: ") + to_string(userdata.money + money));
                                 return true;
-                            } else {
-                                sender.sendErrorMessage(Tran.getLocal(status.second));
-                                return false;
                             }
-                        } else {sender.sendErrorMessage(Tran.getLocal("Missing parameters"));}
+                            sender.sendErrorMessage(Tran.getLocal(snd));
+                            return false;
+                        }
+                        sender.sendErrorMessage(Tran.getLocal("Missing parameters"));
                     }  catch (const std::exception &e) {
                         //返回错误给玩家
                         sender.sendErrorMessage(e.what());
