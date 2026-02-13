@@ -4,12 +4,12 @@
 
 #include "../include/market_action.h"
 #include <utility>
+#include <chrono>
 
 Market_Action::Market_Action(DataBase database) : Database(std::move(database)) {}
 
 int Market_Action::goods_generate_id() const {
-    auto latest_id = Database.getLatestGid();
-    if (latest_id == -1) {
+    if (const auto latest_id = Database.getLatestGid(); latest_id == -1) {
         cout << "商品号生成异常" << endl;
         return -1;
     } else {
@@ -18,8 +18,7 @@ int Market_Action::goods_generate_id() const {
 }
 
 int Market_Action::comment_generate_id() const {
-    auto latest_id = Database.getLatestCommentId();
-    if (latest_id == -1) {
+    if (const auto latest_id = Database.getLatestCommentId(); latest_id == -1) {
         cout << "评论号生成异常" << endl;
         return -1;
     } else {
@@ -30,7 +29,7 @@ int Market_Action::comment_generate_id() const {
 // 时间获取
 std::string Market_Action::getFormattedCurrentTime() {
     // 获取系统当前时间
-    auto now = std::chrono::system_clock::now();
+    const auto now = std::chrono::system_clock::now();
     // 转换为 time_t 类型
     std::time_t t = std::chrono::system_clock::to_time_t(now);
 
@@ -68,7 +67,7 @@ std::vector<int> Market_Action::parseTimeString(const std::string &timeStr) {
 }
 
 string Market_Action::GetTimeHuman() {
-    auto the_time = parseTimeString(getFormattedCurrentTime());
+    const auto the_time = parseTimeString(getFormattedCurrentTime());
     // 重新格式化时间字符串
     std::ostringstream oss;
     oss << std::setw(4) << std::setfill('0') << the_time[0] << "-"  // 年
@@ -99,12 +98,10 @@ pair<bool, string> Market_Action::user_add(const std::string &uuid, const std::s
     if (result.empty()) {
         if (Database.addUser(uuid,playername,username,avatar,item,money)) {
             return {false,"Register failed"};
-        } else {
-            return {true,"Register successfully"};
         }
-    } else {
-        return {false,"The player already exists"};
+        return {true,"Register successfully"};
     }
+    return {false,"The player already exists"};
 }
 
 Market_Action::User_data Market_Action::user_get(const std::string &uuid) const {
@@ -113,10 +110,8 @@ Market_Action::User_data Market_Action::user_get(const std::string &uuid) const 
     if (result.empty()) {
         return {false};
     }
-    else {
-        auto data = result[0];
-        return {true,data.at("uuid"),data.at("playername"),data.at("username"),data.at("avatar"),data.at("item"),DataBase::stringToInt(data.at("money"))};
-    }
+    const auto data = result[0];
+    return {true,data.at("uuid"),data.at("playername"),data.at("username"),data.at("avatar"),data.at("item"),DataBase::stringToInt(data.at("money"))};
 }
 
 pair<bool, string> Market_Action::user_del(const std::string &uuid) const {
@@ -125,13 +120,11 @@ pair<bool, string> Market_Action::user_del(const std::string &uuid) const {
     Database.getUser(uuid,result);
     if (result.empty()) {
         return {false,"The player not exists"};
-    } else {
-        if (Database.deleteUser(uuid)) {
-            return {false,"Delete failed"};
-        } else {
-            return {true,"Delete successfully"};
-        }
     }
+    if (Database.deleteUser(uuid)) {
+        return {false,"Delete failed"};
+    }
+    return {true,"Delete successfully"};
 }
 
 bool Market_Action::user_exist(const std::string &uuid) const {
@@ -143,36 +136,30 @@ pair<bool, string> Market_Action::user_change_avatar(const std::string &uuid, co
     if (user_exist(uuid)) {
         if (Database.updateValue("USER","avatar",avatar,"uuid",uuid)) {
             return {true,"Change successfully"};
-        } else {
-            return {false,"Change failed"};
         }
-    } else {
-        return {false,"The player not exists"};
+        return {false,"Change failed"};
     }
+    return {false,"The player not exists"};
 }
 
 pair<bool, string> Market_Action::user_rename(const std::string &uuid, const std::string &name) const {
     if (user_exist(uuid)) {
         if (Database.updateValue("USER","username",name,"uuid",uuid)) {
             return {true,"Change successfully"};
-        } else {
-            return {false,"Change failed"};
         }
-    } else {
-        return {false,"The player not exists"};
+        return {false,"Change failed"};
     }
+    return {false,"The player not exists"};
 }
 
 pair<bool, string> Market_Action::user_money(const std::string &uuid, int money) const {
     if (user_exist(uuid)) {
         if (Database.updateValue("USER","money",to_string(money),"uuid",uuid)) {
             return {true,"Change successfully"};
-        } else {
-            return {false,"Change failed"};
         }
-    } else {
-        return {false,"The player not exists"};
+        return {false,"Change failed"};
     }
+    return {false,"The player not exists"};
 }
 
 Market_Action::User_data Market_Action::user_get_by_playername(const std::string &playername) const {
@@ -181,16 +168,13 @@ Market_Action::User_data Market_Action::user_get_by_playername(const std::string
     if (result.empty()) {
         return {false};
     }
-    else {
-        auto data = result[0];
-        return {true,data.at("uuid"),data.at("playername"),data.at("username"),data.at("avatar"),data.at("item"),DataBase::stringToInt(data.at("money"))};
-    }
+    const auto data = result[0];
+    return {true,data.at("uuid"),data.at("playername"),data.at("username"),data.at("avatar"),data.at("item"),DataBase::stringToInt(data.at("money"))};
 }
 
 bool Market_Action::user_add_item(const std::string &uuid, const std::string &item) const {
     if (user_exist(uuid)) {
-        auto user_data = user_get(uuid);
-        if (user_data.item.empty()) {
+        if (const auto user_data = user_get(uuid); user_data.item.empty()) {
             return Database.updateValue("USER","item","{"+item+"}","uuid",uuid);
         } else {
             auto vec_item = DataBase::splitString(user_data.item);
@@ -204,25 +188,22 @@ bool Market_Action::user_add_item(const std::string &uuid, const std::string &it
 bool Market_Action::user_clear_item(const std::string &uuid) const {
     if (user_exist(uuid)) {
         return Database.updateValue("USER","item","","uuid",uuid);
-    } else {
-        return false;
     }
+    return false;
 }
 
 string Market_Action::GetUsername(const std::string &uuid) const {
-    auto user_data = user_get(uuid);
-    if (user_data.status) {
+    if (auto user_data = user_get(uuid); user_data.status) {
         return user_data.username;
-    } else {
-        return "Unknown";
     }
+    return "Unknown";
 }
 
 //商品操作
 pair<bool, string> Market_Action::goods_add(const std::string &uuid, const std::string &name, const std::string &text,
                                            const std::string &item, const std::string &data, const std::string &image,
                                            const int price, const std::string &money_type, const std::string &tag) const {
-    int gid = goods_generate_id();
+    const int gid = goods_generate_id();
     if (gid == -1){
         return {false,"Goods ID error"};
     }
@@ -239,10 +220,8 @@ Market_Action::Goods_data Market_Action::goods_get_by_gid(int gid) const {
     if (result.empty()) {
         return {false};
     }
-    else {
-        auto data = result[0];
-        return {true,gid,data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),DataBase::stringToInt(data.at("price")),data.at("money_type"),data.at("tag")};
-    }
+    const auto data = result[0];
+    return {true,gid,data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),DataBase::stringToInt(data.at("price")),data.at("money_type"),data.at("tag")};
 }
 
 bool Market_Action::goods_exist(const int gid) const {
@@ -252,13 +231,11 @@ bool Market_Action::goods_exist(const int gid) const {
 pair<bool,string> Market_Action::goods_del(const int gid) const {
     if (!goods_exist(gid)) {
         return {false,"The goods not exists"};
-    } else {
-        if (Database.deleteGoods(gid)) {
-            return {false,"Delete failed"};
-        } else {
-            return {true,"Delete successfully"};
-        }
-    }   
+    }
+    if (Database.deleteGoods(gid)) {
+        return {false,"Delete failed"};
+    }
+    return {true,"Delete successfully"};
 }
 
 vector<Market_Action::Goods_data> Market_Action::goods_get_by_uuid(const string& uuid) const {
@@ -270,24 +247,23 @@ vector<Market_Action::Goods_data> Market_Action::goods_get_by_uuid(const string&
     if (result.empty()) {
         return {};
     }
-    vector<Market_Action::Goods_data> goods_data;
+    vector<Goods_data> goods_data;
     for (const auto& data:result) {
-        Market_Action::Goods_data one_goods = {true,DataBase::stringToInt(data.at("gid")),data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),DataBase::stringToInt(data.at("price")),data.at("money_type"),data.at("tag")};
+        Goods_data one_goods = {true,DataBase::stringToInt(data.at("gid")),data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),DataBase::stringToInt(data.at("price")),data.at("money_type"),data.at("tag")};
         goods_data.push_back(one_goods);
     }
     return goods_data;
 }
 
 pair<bool, string> Market_Action::goods_del_by_uuid(const std::string &uuid) const {
-    auto goods_data = goods_get_by_uuid(uuid);
+    const auto goods_data = goods_get_by_uuid(uuid);
     if (goods_data.empty()) {
         return {false,"The player has not goods"};
     }
     int su_times = 0;
     int fail_times = 0;
     for (const auto& one_goods:goods_data) {
-        auto status = goods_del(one_goods.gid);
-        if (status.first) {
+        if (const auto [fst, snd] = goods_del(one_goods.gid); fst) {
             su_times++;
         } else {
             fail_times++;
@@ -295,9 +271,8 @@ pair<bool, string> Market_Action::goods_del_by_uuid(const std::string &uuid) con
     }
     if (fail_times == 0) {
         return {true, to_string(su_times) + "," + to_string(fail_times)};
-    } else {
-        return {false, to_string(su_times) + "," + to_string(fail_times)};
     }
+    return {false, to_string(su_times) + "," + to_string(fail_times)};
 }
 
 vector<Market_Action::Goods_data> Market_Action::goods_get_all() const {
@@ -306,9 +281,9 @@ vector<Market_Action::Goods_data> Market_Action::goods_get_all() const {
     if (result.empty()) {
         return {};
     }
-    vector<Market_Action::Goods_data> goods_data;
+    vector<Goods_data> goods_data;
     for (const auto& data:result) {
-        Market_Action::Goods_data one_goods = {true,DataBase::stringToInt(data.at("gid")),data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),DataBase::stringToInt(data.at("price")),data.at("money_type"),data.at("tag")};
+        Goods_data one_goods = {true,DataBase::stringToInt(data.at("gid")),data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),DataBase::stringToInt(data.at("price")),data.at("money_type"),data.at("tag")};
         goods_data.push_back(one_goods);
     }
     return goods_data;
@@ -320,9 +295,8 @@ pair<bool,string> Market_Action::goods_update(int gid,const string& name,const s
     }
     if (Database.updateGoods(gid,name,text,image,tag)) {
         return {false,"Update failed"};
-    } else {
-        return {true,"Update successfully"};
     }
+    return {true,"Update successfully"};
 }
 
 pair<bool, string> Market_Action::comment_add(const std::string &uuid, const string& seller,
@@ -333,9 +307,8 @@ pair<bool, string> Market_Action::comment_add(const std::string &uuid, const str
     }
     if (Database.addComment(cid,seller,uuid, getFormattedCurrentTime(),message)) {
         return {false,"Comment failed"};
-    } else {
-        return {true,"Comment successfully"};
     }
+    return {true,"Comment successfully"};
 }
 
 Market_Action::Comment_data Market_Action::comment_get_by_cid(const int& cid) const {
@@ -343,10 +316,9 @@ Market_Action::Comment_data Market_Action::comment_get_by_cid(const int& cid) co
     Database.getComment(cid,result);
     if (result.empty()) {
         return {false};
-    } else {
-        auto data = result[0];
-        return {true,cid,data.at("uuid"),data.at("seller"),data.at("time"),data.at("message")};
     }
+    const auto data = result[0];
+    return {true,cid,data.at("uuid"),data.at("seller"),data.at("time"),data.at("message")};
 }
 
 bool Market_Action::comment_exist(const int cid) const {
@@ -359,9 +331,8 @@ pair<bool, string> Market_Action::comment_del(int cid) const {
     }
     if (Database.deleteComment(cid)) {
         return {false,"Delete failed"};
-    } else {
-        return {true,"Delete successfully"};
     }
+    return {true,"Delete successfully"};
 }
 
 vector<Market_Action::Comment_data> Market_Action::comment_get_by_seller(const std::string &uuid) const {
@@ -373,23 +344,23 @@ vector<Market_Action::Comment_data> Market_Action::comment_get_by_seller(const s
     if (result.empty()) {
         return {};
     }
-    vector<Market_Action::Comment_data> comment_data;
+    vector<Comment_data> comment_data;
     for (const auto& data:result) {
-        Market_Action::Comment_data one_comment = {true,DataBase::stringToInt(data.at("cid")),data.at("uuid"),data.at("seller"),data.at("time"),data.at("message")};
+        Comment_data one_comment = {true,DataBase::stringToInt(data.at("cid")),data.at("uuid"),data.at("seller"),data.at("time"),data.at("message")};
         comment_data.push_back(one_comment);
     }
     return comment_data;
 }
 
 pair<bool, string> Market_Action::comment_del_by_seller(const std::string &uuid) const {
-    auto comment_data = comment_get_by_seller(uuid);
+    const auto comment_data = comment_get_by_seller(uuid);
     if (comment_data.empty()) {
         return {false,"The seller has no user comments"};
     }
     int su_times = 0;
     int fail_times = 0;
     for (const auto& one_comment:comment_data) {
-        auto status = goods_del(one_comment.cid);
+        const auto status = goods_del(one_comment.cid);
         if (status.first) {
             su_times++;
         } else {
@@ -398,20 +369,17 @@ pair<bool, string> Market_Action::comment_del_by_seller(const std::string &uuid)
     }
     if (fail_times == 0) {
         return {true, to_string(su_times) + "," + to_string(fail_times)};
-    } else {
-        return {false, to_string(su_times) + "," + to_string(fail_times)};
     }
+    return {false, to_string(su_times) + "," + to_string(fail_times)};
 }
 
 
 //交易记录
 pair<bool,string> Market_Action::record_add(const string& seller,const string& buyer,const string& goods) const {
-    const auto uuid = DataBase::generate_uuid_v4();
-    if (Database.addRecord(uuid,seller,buyer, getFormattedCurrentTime(),goods)) {
+    if (const auto uuid = DataBase::generate_uuid_v4(); Database.addRecord(uuid,seller,buyer, getFormattedCurrentTime(),goods)) {
         return {false,"Record failed"};
-    } else {
-        return {true,"Record successfully"};
     }
+    return {true,"Record successfully"};
 };
 
 Market_Action::Record_data Market_Action::record_get_by_uuid(const string& uuid) const {
@@ -419,10 +387,9 @@ Market_Action::Record_data Market_Action::record_get_by_uuid(const string& uuid)
     Database.getRecord(uuid,result);
     if (result.empty()) {
         return {false};
-    } else {
-        auto data = result[0];
-        return {true,uuid,data.at("seller"),data.at("buyer"),data.at("time"),data.at("goods")};
     }
+    const auto data = result[0];
+    return {true,uuid,data.at("seller"),data.at("buyer"),data.at("time"),data.at("goods")};
 }
 
 bool Market_Action::record_exist(const string& uuid) const {
@@ -435,9 +402,8 @@ pair<bool,string> Market_Action::record_del(const string& uuid) const {
     }
     if (Database.deleteRecord(uuid)) {
         return {false,"Delete failed"};
-    } else {
-        return {true,"Delete successfully"};
     }
+    return {true,"Delete successfully"};
 }
 
 vector<Market_Action::Record_data> Market_Action::record_get_by_seller(const string& seller) const {

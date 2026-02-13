@@ -194,9 +194,8 @@ public:
     //反过来将字符串转换为ItemData
     static ItemData StringToItemData(const string& string_data) {
         ItemData itemData;
-        auto vec = DataBase::splitString(string_data);
         //有metadata
-        if (vec.size()>2) {
+        if (auto vec = DataBase::splitString(string_data); vec.size()>2) {
             itemData.item_id = vec[0];
             itemData.item_num = DataBase::stringToInt(vec[1]);
             vec.erase(vec.begin(), vec.begin() + 2);
@@ -212,10 +211,8 @@ public:
 
     static vector<ItemData> UserItemRead(const string& uuid) {
         vector<ItemData> vec_itemData;
-        auto user_data = market.user_get(uuid);
-        if (user_data.status) {
-            auto items = DataBase::splitString(user_data.item);
-            for (const auto & one_item:items) {
+        if (auto user_data = market.user_get(uuid); user_data.status) {
+            for (auto items = DataBase::splitString(user_data.item); const auto & one_item:items) {
                 auto one_str = one_item.substr(1, one_item.size() - 2);
                 if (one_str.empty()) {
                     continue;
@@ -239,7 +236,7 @@ public:
         }
         auto string_goods = to_string(goods_data.gid) + "," + goods_data.uuid + "," + goods_data.name + "," + goods_data.text + "," + goods_data.item + "," +
                             string_goods_data + "," + goods_data.image + "," + to_string(goods_data.price) + "," + goods_data.money_type + "," + goods_data.tag;
-        cout << string_goods << endl;
+
         return {true,string_goods};
     }
 
@@ -257,7 +254,7 @@ public:
     EnchantToSimMap(const std::unordered_map<const endstone::Enchantment*, int>& enchants) {
         std::unordered_map<std::string, int> enchant_sim_map;
         for (const auto& [fst, snd] : enchants) {
-            std::string key{fst->getId().getKey()}; // fst is const Enchantment*
+            std::string key{fst->getId()}; // fst is const Enchantment*
             enchant_sim_map[key] = snd;
         }
         return enchant_sim_map;
@@ -290,80 +287,108 @@ public:
         return umoney_change_player_money(playername,money);
     }
 
-    //检查玩家快捷物品栏中资产并清除
-    static bool check_player_inventory_and_clear(endstone::Player&player,const string& item_id,int item_num,vector<ItemData> &cleared_itemData) {
-        vector<pair<pair<string,int>,int>> items;
-        int player_own_num = 0;
-        for (int i = 0;i <= 35;i++) {
-            if (auto the_one = player.getInventory().getItem(i)) {
-                if (the_one->getType().getKey() == item_id) {
-                    player_own_num += the_one->getAmount();
-                    items.emplace_back(
-                        std::make_pair(the_one->getType().getKey(), the_one->getAmount()),
-                        i
-                    );
-                }
+// 检查玩家快捷物品栏中资产并清除
+static bool check_player_inventory_and_clear(endstone::Player& player, const string& item_id, int item_num, vector<ItemData>& cleared_itemData) {
+    vector<pair<pair<string, int>, int>> items;
+    int player_own_num = 0;
+
+    // 遍历玩家背包 (0-35 是快捷栏+背包，不包括盔甲栏和副手)
+    for (int i = 0; i <= 35; i++) {
+        if (auto the_one = player.getInventory().getItem(i)) {
+            if (the_one->getType().getId() == item_id) {
+                player_own_num += the_one->getAmount();
+                items.emplace_back(
+                    std::make_pair(the_one->getType().getId(), the_one->getAmount()),
+                    i
+                );
             }
         }
-        if (player_own_num >= item_num) {
-            int total = item_num;
-            for (const auto&[fst, snd] : items) {
-                //剩余总数小于等于0直接返回true(理论上不会执行)
-                if (total <= 0) {
-                    return true;
-                }
-                //物品槽位
-                int slot_index = snd;
-                //此槽位物品数
-                //槽位物品数少于所需则清空此槽
-                if (int current_amount = fst.second; current_amount < total) {
-                    auto the_one = player.getInventory().getItem(slot_index);
-                    ItemData itemData;
-                    if (the_one->hasItemMeta()) {
-                        auto meta = the_one->getItemMeta();
-                        itemData.item_id = the_one->getType().getKey();
-                        itemData.item_num = current_amount;
-                        itemData.item_meta = {meta->getLore(),meta->getDamage(),meta->getDisplayName(),EnchantToSimMap(meta->getEnchants())};
-                    } else {
-                        itemData.item_id = the_one->getType().getKey();
-                        itemData.item_num = current_amount;
-                    }
-                    cleared_itemData.push_back(itemData);
-                    player.getInventory().setItem(slot_index, nullptr);
-                    total -= current_amount;
-                }
-                //槽位物品数大于等于所需则设置为减去所需的数量并结束
-                else {
-                    int amount = current_amount - total;
-                    auto the_item = player.getInventory().getItem(slot_index);
-                    //构造ItemData
-                    ItemData itemData;
-                    if (the_item->hasItemMeta()) {
-                        auto meta = the_item->getItemMeta();
-                        itemData.item_id = the_item->getType().getKey();
-                        itemData.item_num = total;
-                        itemData.item_meta = Meta_data{meta->getLore(),meta->getDamage(),meta->getDisplayName(),EnchantToSimMap(meta->getEnchants())};
-                    } else {
-                        itemData.item_id = the_item->getType().getKey();
-                        itemData.item_num = total;
-                    }
-                    //将获取的数据返回去
-                    cleared_itemData.push_back(itemData);
-                    //构建减去的物品设置给玩家
-                    endstone::ItemStack new_item(the_item->getType(),amount);
-                    if (the_item->hasItemMeta()) {
-                        auto meta = the_item->getItemMeta();
-                        auto new_meta = meta->clone();
-                        new_item.setItemMeta(new_meta.get());
-                    }
-                    player.getInventory().setItem(slot_index,&new_item);
-                    return true;
-                }
-            }
-            return true;
-        }
+    }
+
+    // 如果玩家拥有的物品数量不足，直接返回 false
+    if (player_own_num < item_num) {
         return false;
     }
+
+    int total = item_num;  // 还需要扣除的数量
+
+    // 遍历所有包含目标物品的槽位
+    for (const auto& [fst, snd] : items) {
+        // 如果已经扣够了，提前结束
+        if (total <= 0) {
+            return true;
+        }
+
+        int slot_index = snd;
+
+        // 情况1：当前槽位物品数量少于还需要扣除的数量 → 清空整个槽位
+        if (int current_amount = fst.second; current_amount < total) {
+            auto the_one = player.getInventory().getItem(slot_index);
+
+            // 构造 ItemData 记录被清除的物品
+            ItemData itemData;
+            itemData.item_id = the_one->getType().getId();
+            itemData.item_num = current_amount;
+
+            if (the_one->hasItemMeta()) {
+                auto meta = the_one->getItemMeta();
+                itemData.item_meta = Meta_data{
+                    meta->getLore(),           // std::optional<std::vector<std::string>>
+                    meta->getDamage(),          // int
+                    meta->getDisplayName(),     // std::optional<std::string>
+                    EnchantToSimMap(meta->getEnchants())  // 附魔映射
+                };
+            }
+
+            cleared_itemData.push_back(itemData);
+
+            player.getInventory().setItem(slot_index, std::nullopt);
+
+            total -= current_amount;
+        }
+        // 情况2：当前槽位物品数量足够扣除剩余数量
+        else {
+            int amount = current_amount - total;  // 扣除后剩余的数量
+            auto the_item = player.getInventory().getItem(slot_index);
+
+            // 构造 ItemData 记录被清除的物品
+            ItemData itemData;
+            itemData.item_id = the_item->getType().getId();
+            itemData.item_num = total;  // 被扣除的数量
+
+            if (the_item->hasItemMeta()) {
+                auto meta = the_item->getItemMeta();
+                itemData.item_meta = Meta_data{
+                    meta->getLore(),
+                    meta->getDamage(),
+                    meta->getDisplayName(),
+                    EnchantToSimMap(meta->getEnchants())
+                };
+            }
+
+            cleared_itemData.push_back(itemData);
+
+            // 构建扣除后剩余的物品
+            endstone::ItemStack new_item(the_item->getType(), amount);
+
+            // 如果原物品有 ItemMeta，需要复制到新物品
+            if (the_item->hasItemMeta()) {
+                auto meta = the_item->getItemMeta();
+                auto new_meta = meta->clone();  // 克隆原物品的 meta
+                new_item.setItemMeta(new_meta.get());
+            }
+
+            std::optional new_item_opt = new_item;
+
+            // 将剩余物品放回槽位
+            player.getInventory().setItem(slot_index, new_item_opt);
+
+            return true;  // 扣除完成
+        }
+    }
+
+    return true;
+}
 
     // 检查是否允许触发事件
     static bool canTriggerEvent(const string& playername) {

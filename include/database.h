@@ -1309,18 +1309,19 @@ public:
 
         return oss.str();
     }
-    //还原附魔字符串为附魔map
+    // 还原附魔字符串为附魔map
     static std::unordered_map<std::string, int> stringToEnchants(const std::string& str) {
         std::unordered_map<std::string, int> result;
         std::istringstream ss(str);
         std::string pairStr;
 
         while (std::getline(ss, pairStr, ',')) {
-            size_t colonPos = pairStr.find(':');
-            if (colonPos != std::string::npos) {
+
+            if (size_t colonPos = pairStr.find_last_of(':'); colonPos != std::string::npos) {
                 std::string key = pairStr.substr(0, colonPos);
                 std::string valueStr = pairStr.substr(colonPos + 1);
                 try {
+                    // key: "minecraft:unbreaking", valueStr: "3"
                     int value = std::stoi(valueStr);
                     result[key] = value;
                 } catch (...) {
