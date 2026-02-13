@@ -132,6 +132,9 @@ public:
             getLogger().info(endstone::ColorFormat::Yellow + Tran.getLocal("Database file not find,auto create"));
         }
         (void)Database.init_database();
+        menu_ = std::make_unique<Menu>(*this);
+        market_core_ = std::make_unique<MarketCore>(*this);
+        registerEvent(&Menu::onOpenMenu,*menu_);
         //进行一个配置文件的读取
         json json_msg = read_config();
         string lang = "en_US";
@@ -168,9 +171,6 @@ public:
         Tran = translate(language_file);
         Tran.loadLanguage();
         translate::checkLanguageCommon(language_file,data_path+"/language/lang.json");
-        menu_ = std::make_unique<Menu>(*this);
-        market_core_ = std::make_unique<MarketCore>(*this);
-        registerEvent(&Menu::onOpenMenu,*menu_);
         //显示启动消息
         getLogger().info(endstone::ColorFormat::Yellow + "FreeMarket插件已启动。版本: " + getServer().getPluginManager().getPlugin("freemarket")->getDescription().getVersion());
     }

@@ -191,7 +191,7 @@ jobs:
             cp -r language/* ${BUILD_DIR}/freemarket/language/
             ZIP_NAME=freemarket_plugin_v${VERSION}_${OS}.zip
             cd ${BUILD_DIR}
-            zip -r ../${ZIP_NAME} endstone_freemarket.${EXT} freemarket_data
+            zip -r ../${ZIP_NAME} endstone_freemarket.${EXT} freemarket
             cd ..
             mv ${ZIP_NAME} artifacts/
             rm -rf ${BUILD_DIR}
