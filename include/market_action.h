@@ -5,7 +5,7 @@
 #ifndef TEST_MARKET_ACTION_H
 #define TEST_MARKET_ACTION_H
 #include <vector>
-#include "database.h"
+#include "database.hpp"
 using namespace std;
 
 class Market_Action {

@@ -38,7 +38,7 @@ public:
         }
 
         // 创建 USER 表
-        std::string create_user_table = "CREATE TABLE IF NOT EXISTS USER ("
+        const std::string create_user_table = "CREATE TABLE IF NOT EXISTS USER ("
                                         "uuid TEXT PRIMARY KEY,"
                                         "playername TEXT,"
                                         "username TEXT,"
@@ -54,7 +54,7 @@ public:
         }
 
         // 创建 GOODS 表
-        std::string create_goods_table = "CREATE TABLE IF NOT EXISTS GOODS ("
+        const std::string create_goods_table = "CREATE TABLE IF NOT EXISTS GOODS ("
                                         "gid INTEGER PRIMARY KEY,"
                                         "uuid TEXT,"
                                         "name TEXT,"

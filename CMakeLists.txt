@@ -14,14 +14,14 @@ include(FetchContent)
 FetchContent_Declare(
         endstone
         GIT_REPOSITORY https://github.com/EndstoneMC/endstone.git
-        GIT_TAG v0.11.0
+        GIT_TAG v0.11.2
 )
 FetchContent_MakeAvailable(endstone)
 
 FetchContent_Declare(
         nlohmann_json
         GIT_REPOSITORY https://github.com/nlohmann/json.git
-        GIT_TAG master
+        GIT_TAG v3.12.0
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
@@ -36,7 +36,11 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(fmt)
 
-endstone_add_plugin(${PROJECT_NAME} src/freemarket.cpp src/market_action.cpp)
+file(GLOB PLUGIN_SOURCES
+        CONFIGURE_DEPENDS
+        "src/*.cpp"
+)
+endstone_add_plugin(${PROJECT_NAME} ${PLUGIN_SOURCES})
 
 target_include_directories(${PROJECT_NAME}
         PRIVATE ${CMAKE_SOURCE_DIR}/include
@@ -90,7 +94,7 @@ else()
 endif()
 
 # 基础版本（主版本号）
-set(BASE_VERSION "0.1.3.1")
+set(BASE_VERSION "0.2.0")
 
 # 检查是否为正式发布版本
 if(RELEASE_VERSION)
