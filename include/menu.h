@@ -9,7 +9,7 @@
 
 class Menu {
 public:
-    explicit Menu(endstone::Plugin &plugin);
+    explicit Menu(endstone::Plugin &plugin) : plugin_(plugin) {}
 
     // 静态通知菜单
     static void notice_menu(endstone::Player& player, const std::string& msg,

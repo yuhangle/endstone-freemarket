@@ -1182,36 +1182,30 @@ public:
 
     //将逗号字符串分割为vector
     static std::vector<std::string> splitString(const std::string& input) {
-        std::vector<std::string> result; // 用于存储分割后的结果
-        std::string current;             // 当前正在构建的子字符串
-        bool inBraces = false;           // 标记是否在 {} 内部
+        std::vector<std::string> result;
+        std::string current;
+        int depth = 0;  // 括号嵌套深度，遇到 { 或 [ 增加，遇到 } 或 ] 减少
 
-        for (char ch : input) {
-            if (ch == '{') {
-                // 遇到左大括号，标记进入 {} 内部
-                inBraces = true;
-                current += ch; // 将 { 添加到当前字符串
-            } else if (ch == '}') {
-                // 遇到右大括号，标记离开 {} 内部
-                inBraces = false;
-                current += ch; // 将 } 添加到当前字符串
-            } else if (ch == ',' && !inBraces) {
-                // 遇到逗号且不在 {} 内部时，分割字符串
+        for (const char ch : input) {
+            if (ch == '{' || ch == '[') {
+                depth++;
+                current += ch;
+            } else if (ch == '}' || ch == ']') {
+                depth--;
+                current += ch;
+            } else if (ch == ',' && depth == 0) {
+                // 仅在深度为0时，逗号作为分隔符
                 if (!current.empty()) {
                     result.push_back(current);
                     current.clear();
                 }
             } else {
-                // 其他情况，将字符添加到当前字符串
                 current += ch;
             }
         }
-
-        // 处理最后一个子字符串（如果非空）
         if (!current.empty()) {
             result.push_back(current);
         }
-
         return result;
     }
 

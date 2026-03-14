@@ -39,6 +39,7 @@ struct ItemData{
     string item_id;
     int item_num{};
     std::optional<Meta_data> item_meta;
+    std::optional<endstone::nbt::Tag> nbt;
 };
 class MarketCore {
 public:
@@ -50,7 +51,7 @@ public:
     //获取玩家资金
     static int umoney_get_player_money(const std::string& player_name);
     //更改玩家资金
-    [[nodiscard]] bool umoney_change_player_money(const std::string& player_name, const int money) const;
+    [[nodiscard]] bool umoney_change_player_money(const std::string& player_name, int money) const;
 
     //物品数据转换
     static string ItemMetaToString(const Meta_data& meta_data);
