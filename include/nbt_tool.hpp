@@ -8,8 +8,6 @@
 #include <endstone/endstone.hpp>
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include <openssl/sha.h>
-#include <sstream>
 #include <iomanip>
 #include <map>
 
@@ -18,7 +16,7 @@ using namespace nlohmann;
 class NBTTools
 {
 public:
-    static constexpr int TOOL_VERSION = 1;
+    static constexpr int TOOL_VERSION = 2;
 
     // ================= 1. 调试与打印 =================
 
@@ -272,34 +270,6 @@ public:
             return {}; // 返回空 Tag (EndTag)
         }
         return jsonToNbt(j);
-    }
-
-    // ================= 4. 哈希与指纹 =================
-
-    static std::string calculateSha256(const std::string& input) {
-        unsigned char hash[SHA256_DIGEST_LENGTH];
-        SHA256(reinterpret_cast<const unsigned char*>(input.c_str()), input.size(), hash);
-
-        std::stringstream ss;
-        for (const unsigned char i : hash) {
-            ss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(i);
-        }
-        return ss.str();
-    }
-
-    /**
-     * @brief 获取物品 NBT 的唯一指纹 (SHA256)
-     */
-    static std::string getItemNbtFingerprint(const endstone::ItemStack& item) {
-        const json j = nbtToJson(item.getNbt());
-        // 使用新封装的紧凑字符串函数
-        const std::string jsonString = jsonToCompactString(j);
-
-        if (jsonString.empty()) {
-            // 如果 NBT 为空，可以返回一个固定的空哈希，或者空字符串，视需求而定
-            return calculateSha256("");
-        }
-        return calculateSha256(jsonString);
     }
 
     // ================= 5. 业务逻辑工具 =================
