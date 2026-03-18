@@ -541,7 +541,7 @@ void Menu::confirm_to_buy_menu(endstone::Player& player, const Market_Action::Go
 
             if (goods_data.money_type == "money") {
                 if (int buyer_money = MarketCore::get_player_money(*p); buyer_money >= goods_data.price) {
-                    (void)market_core_->general_change_money(p->getUniqueId().str(), p->getName(), -goods_data.price);
+                    (void)market_core_.general_change_money(p->getUniqueId().str(), p->getName(), -goods_data.price);
 
                     // 解析物品数据
                     auto [item_id, item_num, item_meta, item_nbt] = MarketCore::BackItemData(goods_data.item, goods_data.data);
@@ -573,7 +573,7 @@ void Menu::confirm_to_buy_menu(endstone::Player& player, const Market_Action::Go
 
                     p->getInventory().addItem(new_item);
                     auto delGoodsStatus = market.goods_del(goods_data.gid);
-                    (void)market_core_->general_change_money(seller_data.uuid, seller_data.playername, goods_data.price);
+                    (void)market_core_.general_change_money(seller_data.uuid, seller_data.playername, goods_data.price);
                     if (auto get_seller = plugin_.getServer().getPlayer(seller_data.playername)) {
                         get_seller->sendMessage(Tran.getLocal("Your goods have been purchased. Transaction details: ") + "\n" +
                                                 Tran.getLocal("Buyer: ") + p->getName() + "\n" +

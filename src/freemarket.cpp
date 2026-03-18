@@ -150,8 +150,8 @@ void FreeMarket::onEnable()
         getLogger().info(endstone::ColorFormat::Yellow + Tran.getLocal("Database file not find,auto create"));
     }
     (void)Database.init_database();
-    menu_ = std::make_unique<Menu>(*this);
     market_core_ = std::make_unique<MarketCore>(*this);
+    menu_ = std::make_unique<Menu>(*this, *market_core_);
     registerEvent(&Menu::onOpenMenu,*menu_);
     //进行一个配置文件的读取
     json json_msg = read_config();

@@ -5,11 +5,16 @@
 #ifndef FREEMARKET_MENU_H
 #define FREEMARKET_MENU_H
 
-#include "global.h"
+#include <endstone/endstone.hpp>
+#include <market_core.h>
+
+class MarketCore; // 前向声明
 
 class Menu {
 public:
-    explicit Menu(endstone::Plugin &plugin) : plugin_(plugin) {}
+    //explicit Menu(endstone::Plugin &plugin) : plugin_(plugin) {}
+    explicit Menu(endstone::Plugin &plugin, MarketCore &market_core)
+        : plugin_(plugin), market_core_(market_core) {}
 
     // 静态通知菜单
     static void notice_menu(endstone::Player& player, const std::string& msg,
@@ -86,6 +91,7 @@ public:
 
 private:
     endstone::Plugin &plugin_;
+    MarketCore &market_core_;
 };
 
 #endif //FREEMARKET_MENU_H

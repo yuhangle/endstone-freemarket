@@ -8,7 +8,6 @@
 #include <endstone/endstone.hpp>
 #include <iostream>
 #include <nlohmann/json.hpp>
-#include <iomanip>
 #include <map>
 
 using namespace nlohmann;
@@ -263,8 +262,8 @@ public:
      * 流程：String -> JSON -> NBT
      */
     static endstone::nbt::Tag stringToNbt(const std::string& jsonString) {
-        cout << "在stringToNbt函数中打印" << endl;
-        cout << jsonString << endl;
+        //cout << "在stringToNbt函数中打印" << endl;
+        //cout << jsonString << endl;
         const json j = stringToJson(jsonString);
         if (j.is_null()) {
             return {}; // 返回空 Tag (EndTag)
