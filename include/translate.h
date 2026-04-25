@@ -12,15 +12,13 @@
 
 using namespace std;
 
-using namespace std;
-inline string language_file = "plugins/freemarket/language/lang.json";
 class translate {
 public:
     using json = nlohmann::json;
     json languageResource; // 存储从 lang.json 加载的语言资源
 
     // 构造函数中加载语言资源文件
-    explicit translate(string lang_file = language_file) : lang_file_(std::move(lang_file)) { loadLanguage(); };
+    explicit translate(string lang_file) : lang_file_(std::move(lang_file)) { loadLanguage(); };
 
     // 加载语言资源文件
     pair<bool,string> loadLanguage() {
@@ -34,9 +32,9 @@ public:
     }
 
     // 获取本地化字符串
-    std::string getLocal(const std::string &key) {
-        if (languageResource.find(key) != languageResource.end()) {
-            return languageResource[key].get<std::string>();
+    std::string getLocal(const std::string &key) const {
+        if (languageResource.contains(key)) {
+            return languageResource.at(key).get<std::string>();
         }
         return key; // 如果找不到，返回原始 key
     }

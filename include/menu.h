@@ -16,9 +16,9 @@ public:
     explicit Menu(endstone::Plugin &plugin, MarketCore &market_core)
         : plugin_(plugin), market_core_(market_core) {}
 
-    // 静态通知菜单
-    static void notice_menu(endstone::Player& player, const std::string& msg,
-                            const std::function<void(endstone::Player&)>& yes_func);
+    // 通知菜单
+    void notice_menu(endstone::Player& player, const std::string& msg,
+                     const std::function<void(endstone::Player&)>& yes_func);
 
     // 主菜单
     void main_menu(endstone::Player& player);
@@ -39,7 +39,7 @@ public:
     void goods_upload_menu(endstone::Player& player);
 
     // 商品上传确认菜单
-    void goods_upload_confirm_menu(endstone::Player& player, const ItemData& item_data, int quick_index);
+    void goods_upload_confirm_menu(endstone::Player& player, const ItemStackData& item_data, int quick_index);
 
     // 市场展示主菜单
     void market_display_menu(endstone::Player& player);

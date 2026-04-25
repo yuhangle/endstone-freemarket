@@ -6,7 +6,7 @@
 #include <utility>
 #include <chrono>
 
-Market_Action::Market_Action(DataBase database) : Database(std::move(database)) {}
+Market_Action::Market_Action(DataBase& database) : Database(database) {}
 
 int Market_Action::goods_generate_id() const {
     if (const auto latest_id = Database.getLatestGid(); latest_id == -1) {
@@ -111,7 +111,7 @@ Market_Action::User_data Market_Action::user_get(const std::string &uuid) const 
         return {false};
     }
     const auto data = result[0];
-    return {true,data.at("uuid"),data.at("playername"),data.at("username"),data.at("avatar"),data.at("item"),DataBase::stringToInt(data.at("money"))};
+    return {true,data.at("uuid"),data.at("playername"),data.at("username"),data.at("avatar"),data.at("item"),string_utils::to_int(data.at("money"))};
 }
 
 pair<bool, string> Market_Action::user_del(const std::string &uuid) const {
@@ -169,7 +169,7 @@ Market_Action::User_data Market_Action::user_get_by_playername(const std::string
         return {false};
     }
     const auto data = result[0];
-    return {true,data.at("uuid"),data.at("playername"),data.at("username"),data.at("avatar"),data.at("item"),DataBase::stringToInt(data.at("money"))};
+    return {true,data.at("uuid"),data.at("playername"),data.at("username"),data.at("avatar"),data.at("item"),string_utils::to_int(data.at("money"))};
 }
 
 bool Market_Action::user_add_item(const std::string &uuid, const std::string &item) const {
@@ -177,9 +177,9 @@ bool Market_Action::user_add_item(const std::string &uuid, const std::string &it
         if (const auto user_data = user_get(uuid); user_data.item.empty()) {
             return Database.updateValue("USER","item","{"+item+"}","uuid",uuid);
         } else {
-            auto vec_item = DataBase::splitString(user_data.item);
+            auto vec_item = string_utils::split(user_data.item);
             vec_item.push_back("{"+item+"}");
-            return Database.updateValue("USER","item",DataBase::vectorToString(vec_item),"uuid",uuid);
+            return Database.updateValue("USER","item",string_utils::join(vec_item),"uuid",uuid);
         }
     }
     return false;
@@ -221,7 +221,7 @@ Market_Action::Goods_data Market_Action::goods_get_by_gid(int gid) const {
         return {false};
     }
     const auto data = result[0];
-    return {true,gid,data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),DataBase::stringToInt(data.at("price")),data.at("money_type"),data.at("tag")};
+    return {true,gid,data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),string_utils::to_int(data.at("price")),data.at("money_type"),data.at("tag")};
 }
 
 bool Market_Action::goods_exist(const int gid) const {
@@ -249,7 +249,7 @@ vector<Market_Action::Goods_data> Market_Action::goods_get_by_uuid(const string&
     }
     vector<Goods_data> goods_data;
     for (const auto& data:result) {
-        Goods_data one_goods = {true,DataBase::stringToInt(data.at("gid")),data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),DataBase::stringToInt(data.at("price")),data.at("money_type"),data.at("tag")};
+        Goods_data one_goods = {true,string_utils::to_int(data.at("gid")),data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),string_utils::to_int(data.at("price")),data.at("money_type"),data.at("tag")};
         goods_data.push_back(one_goods);
     }
     return goods_data;
@@ -283,7 +283,7 @@ vector<Market_Action::Goods_data> Market_Action::goods_get_all() const {
     }
     vector<Goods_data> goods_data;
     for (const auto& data:result) {
-        Goods_data one_goods = {true,DataBase::stringToInt(data.at("gid")),data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),DataBase::stringToInt(data.at("price")),data.at("money_type"),data.at("tag")};
+        Goods_data one_goods = {true,string_utils::to_int(data.at("gid")),data.at("uuid"),data.at("name"),data.at("text"),data.at("item"),data.at("data"),data.at("image"),string_utils::to_int(data.at("price")),data.at("money_type"),data.at("tag")};
         goods_data.push_back(one_goods);
     }
     return goods_data;
@@ -346,7 +346,7 @@ vector<Market_Action::Comment_data> Market_Action::comment_get_by_seller(const s
     }
     vector<Comment_data> comment_data;
     for (const auto& data:result) {
-        Comment_data one_comment = {true,DataBase::stringToInt(data.at("cid")),data.at("uuid"),data.at("seller"),data.at("time"),data.at("message")};
+        Comment_data one_comment = {true,string_utils::to_int(data.at("cid")),data.at("uuid"),data.at("seller"),data.at("time"),data.at("message")};
         comment_data.push_back(one_comment);
     }
     return comment_data;
@@ -376,7 +376,7 @@ pair<bool, string> Market_Action::comment_del_by_seller(const std::string &uuid)
 
 //交易记录
 pair<bool,string> Market_Action::record_add(const string& seller,const string& buyer,const string& goods) const {
-    if (const auto uuid = DataBase::generate_uuid_v4(); Database.addRecord(uuid,seller,buyer, getFormattedCurrentTime(),goods)) {
+    if (const auto uuid = string_utils::generate_uuid(); Database.addRecord(uuid,seller,buyer, getFormattedCurrentTime(),goods)) {
         return {false,"Record failed"};
     }
     return {true,"Record successfully"};

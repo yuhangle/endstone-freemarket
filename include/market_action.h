@@ -6,11 +6,12 @@
 #define TEST_MARKET_ACTION_H
 #include <vector>
 #include "database.hpp"
+#include "string_utils.hpp"
 using namespace std;
 
 class Market_Action {
 public:
-    explicit Market_Action(DataBase database);
+    explicit Market_Action(DataBase& database);
 
     [[nodiscard]] int goods_generate_id() const;
     [[nodiscard]] int comment_generate_id() const;
@@ -157,7 +158,7 @@ public:
     //通过买家的uuid批量获取交易数据
     [[nodiscard]] vector<Record_data> record_get_by_buyer(const string& buyer) const;
 private:
-    DataBase Database;
+    DataBase& Database;
 };
 
 
