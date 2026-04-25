@@ -21,7 +21,7 @@ public:
 
     // Convert to in-game ItemStack (handles NBT/Meta exclusively)
     static endstone::ItemStack toItemStack(const ItemStackData& data,
-                                           endstone::ItemFactory& item_factory);
+                                           const endstone::ItemFactory& item_factory);
 
     // Build a human-readable display string from ItemStackData
     static std::string buildMetaDisplay(const ItemStackData& data);

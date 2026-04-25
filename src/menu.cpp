@@ -6,11 +6,12 @@
 #include "freemarket.h"
 #include "item_serializer.hpp"
 #include "menu_helpers.hpp"
+#include "string_utils.hpp"
 #include "trade_engine.hpp"
-#include "nbt_tool.hpp"
 
 //通知菜单
-void Menu::notice_menu(endstone::Player& player,const string& msg,const std::function<void(endstone::Player&)>& yes_func) {
+void Menu::notice_menu(endstone::Player& player,const string& msg,const std::function<void(endstone::Player&)>& yes_func) const
+{
     endstone::MessageForm menu;
     menu.setTitle(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("Notice"));
     menu.setContent(msg);

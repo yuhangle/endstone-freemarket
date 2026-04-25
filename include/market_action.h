@@ -6,7 +6,6 @@
 #define TEST_MARKET_ACTION_H
 #include <vector>
 #include "database.hpp"
-#include "string_utils.hpp"
 using namespace std;
 
 class Market_Action {

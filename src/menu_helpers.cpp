@@ -35,8 +35,8 @@ std::string buildItemMetaDisplay(const ItemStackData& data, translate& translato
     return result;
 }
 
-bool giveItemToPlayer(endstone::Player& player, const ItemStackData& data,
-                      endstone::ItemFactory& item_factory) {
+bool giveItemToPlayer(const endstone::Player& player, const ItemStackData& data,
+                      const endstone::ItemFactory& item_factory) {
     auto itemStack = ItemSerializer::toItemStack(data, item_factory);
     player.getInventory().addItem(itemStack);
     return true;
@@ -77,8 +77,8 @@ bool playerHasItemCount(const endstone::Player& player, const std::string& item_
     return false;
 }
 
-std::vector<ItemStackData> takeItemsFromInventory(endstone::Player& player,
-                                                   const std::string& item_id, int count) {
+std::vector<ItemStackData> takeItemsFromInventory(const endstone::Player& player,
+                                                   const std::string& item_id, const int count) {
     std::vector<ItemStackData> result;
     int total_needed = count;
 

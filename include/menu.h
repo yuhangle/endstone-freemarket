@@ -18,7 +18,7 @@ public:
 
     // 通知菜单
     void notice_menu(endstone::Player& player, const std::string& msg,
-                     const std::function<void(endstone::Player&)>& yes_func);
+                     const std::function<void(endstone::Player&)>& yes_func) const;
 
     // 主菜单
     void main_menu(endstone::Player& player);

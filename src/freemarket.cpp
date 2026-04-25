@@ -6,6 +6,7 @@
 #include "version.h"
 #include <fstream>
 #include <filesystem>
+#include "string_utils.hpp"
 
 ENDSTONE_PLUGIN("freemarket", FREEMARKET_PLUGIN_VERSION, FreeMarket)
 {
@@ -42,8 +43,7 @@ void FreeMarket::datafile_check() const {
         getLogger().info(translator_.getLocal("No data path,auto create"));
         std::filesystem::create_directory(data_path_);
         if (!(std::filesystem::exists(config_path_))) {
-            std::ofstream file(config_path_);
-            if (file.is_open()) {
+            if (std::ofstream file(config_path_); file.is_open()) {
                 file << df_config.dump(4);
                 file.close();
                 getLogger().info(translator_.getLocal("Config file created"));
@@ -51,8 +51,7 @@ void FreeMarket::datafile_check() const {
         }
     } else if (std::filesystem::exists(data_path_)) {
         if (!(std::filesystem::exists(config_path_))) {
-            std::ofstream file(config_path_);
-            if (file.is_open()) {
+            if (std::ofstream file(config_path_); file.is_open()) {
                 file << df_config.dump(4);
                 file.close();
                 getLogger().info(translator_.getLocal("Config file created"));
@@ -76,8 +75,7 @@ void FreeMarket::datafile_check() const {
 
             // 如果需要更新配置文件，则进行写入
             if (need_update) {
-                std::ofstream outfile(config_path_);
-                if (outfile.is_open()) {
+                if (std::ofstream outfile(config_path_); outfile.is_open()) {
                     outfile << loaded_config.dump(4);
                     outfile.close();
                     getLogger().info(translator_.getLocal("Config file update over"));

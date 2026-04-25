@@ -1,5 +1,4 @@
 #pragma once
-#include "item_data.hpp"
 #include "market_action.h"
 #include <string>
 #include <endstone/endstone.hpp>
@@ -22,18 +21,18 @@ public:
     // Execute a purchase: buyer buys goods_data from the market
     // Handles both money and item-exchange transactions
     TradeResult executePurchase(endstone::Player& buyer,
-                                const Market_Action::Goods_data& goods_data);
+                                const Market_Action::Goods_data& goods_data) const;
 
 private:
     // Money transaction path
-    TradeResult purchaseWithMoney(endstone::Player& buyer,
+    [[nodiscard]] TradeResult purchaseWithMoney(const endstone::Player& buyer,
                                    const Market_Action::Goods_data& goods_data,
-                                   const Market_Action::User_data& seller_data);
+                                   const Market_Action::User_data& seller_data) const;
 
     // Item-exchange transaction path
-    TradeResult purchaseWithItems(endstone::Player& buyer,
+    [[nodiscard]] TradeResult purchaseWithItems(const endstone::Player& buyer,
                                    const Market_Action::Goods_data& goods_data,
-                                   const Market_Action::User_data& seller_data);
+                                   const Market_Action::User_data& seller_data) const;
 
     endstone::Plugin& plugin_;
     MarketCore& market_core_;

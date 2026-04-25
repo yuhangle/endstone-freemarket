@@ -16,16 +16,16 @@ using json = nlohmann::json;
 class FreeMarket : public endstone::Plugin {
 public:
     // Accessors for dependency injection (replace inline globals)
-    Market_Action& getMarket() { return *market_; }
+    [[nodiscard]] Market_Action& getMarket() const { return *market_; }
     translate& getTranslator() { return translator_; }
-    DataBase& getDatabase() { return *database_; }
-    const std::string& getMoneyConfig() const { return money_config_; }
-    int getPlayerMaxGoods() const { return player_max_goods_; }
+    [[nodiscard]] DataBase& getDatabase() const { return *database_; }
+    [[nodiscard]] const std::string& getMoneyConfig() const { return money_config_; }
+    [[nodiscard]] int getPlayerMaxGoods() const { return player_max_goods_; }
     auto& getLastTriggerTime() { return last_trigger_time_; }
-    const std::string& getDataPath() const { return data_path_; }
-    const std::string& getDbFile() const { return db_file_; }
-    const std::string& getConfigPath() const { return config_path_; }
-    const std::string& getUmoneyFile() const { return umoney_file_; }
+    [[nodiscard]] const std::string& getDataPath() const { return data_path_; }
+    [[nodiscard]] const std::string& getDbFile() const { return db_file_; }
+    [[nodiscard]] const std::string& getConfigPath() const { return config_path_; }
+    [[nodiscard]] const std::string& getUmoneyFile() const { return umoney_file_; }
 
     //数据目录和配置文件检查
     void datafile_check() const;

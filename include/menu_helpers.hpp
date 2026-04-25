@@ -11,8 +11,8 @@
 std::string buildItemMetaDisplay(const ItemStackData& data, translate& translator);
 
 // Restore item to player's inventory, returns true if successful
-bool giveItemToPlayer(endstone::Player& player, const ItemStackData& data,
-                      endstone::ItemFactory& item_factory);
+bool giveItemToPlayer(const endstone::Player& player, const ItemStackData& data,
+                      const endstone::ItemFactory& item_factory);
 
 // Read player's hotbar (slots 0-8) as ItemStackData list (empty slots = invalid items)
 std::vector<ItemStackData> readPlayerHotbar(const endstone::Player& player);
@@ -24,7 +24,7 @@ bool isPlayerInventoryFull(const endstone::Player& player);
 bool playerHasItemCount(const endstone::Player& player, const std::string& item_id, int count);
 
 // Take `count` of `item_id` from player inventory, return extracted ItemStackData list
-std::vector<ItemStackData> takeItemsFromInventory(endstone::Player& player,
+std::vector<ItemStackData> takeItemsFromInventory(const endstone::Player& player,
                                                    const std::string& item_id, int count);
 
 // ========== Menu presets ==========

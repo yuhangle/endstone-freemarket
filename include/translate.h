@@ -32,7 +32,7 @@ public:
     }
 
     // 获取本地化字符串
-    std::string getLocal(const std::string &key) const {
+    [[nodiscard]] std::string getLocal(const std::string &key) const {
         if (languageResource.contains(key)) {
             return languageResource.at(key).get<std::string>();
         }

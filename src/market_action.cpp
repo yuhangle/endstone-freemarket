@@ -5,6 +5,7 @@
 #include "../include/market_action.h"
 #include <utility>
 #include <chrono>
+#include "string_utils.hpp"
 
 Market_Action::Market_Action(DataBase& database) : Database(database) {}
 
@@ -360,8 +361,7 @@ pair<bool, string> Market_Action::comment_del_by_seller(const std::string &uuid)
     int su_times = 0;
     int fail_times = 0;
     for (const auto& one_comment:comment_data) {
-        const auto status = goods_del(one_comment.cid);
-        if (status.first) {
+        if (const auto [fst, snd] = goods_del(one_comment.cid); fst) {
             su_times++;
         } else {
             fail_times++;

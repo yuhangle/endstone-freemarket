@@ -8,6 +8,8 @@
 #include <iostream>
 #include <nbt_tool.hpp>
 
+#include "string_utils.hpp"
+
 // 检查插件存在
 bool MarketCore::umoney_check_exists() const {
     if (plugin_.getServer().getPluginManager().getPlugin("umoney")) {
@@ -17,7 +19,8 @@ bool MarketCore::umoney_check_exists() const {
 }
 
 //获取玩家资金
-int MarketCore::umoney_get_player_money(const std::string& player_name) {
+int MarketCore::umoney_get_player_money(const std::string& player_name) const
+{
     std::ifstream f(dynamic_cast<FreeMarket&>(plugin_).getUmoneyFile());
     if (!f.is_open()) {
         std::cerr << "Error: Could not open file: " << dynamic_cast<FreeMarket&>(plugin_).getUmoneyFile() << std::endl;
@@ -76,7 +79,8 @@ bool MarketCore::umoney_change_player_money(const std::string& player_name, cons
     }
 }
 
-vector<ItemStackData> MarketCore::UserItemRead(const string& uuid) {
+vector<ItemStackData> MarketCore::UserItemRead(const string& uuid) const
+{
     vector<ItemStackData> vec_itemData;
     if (const auto user_data = dynamic_cast<FreeMarket&>(plugin_).getMarket().user_get(uuid); user_data.status) {
         for (const auto items = string_utils::split(user_data.item); const auto & one_item:items) {
@@ -118,7 +122,8 @@ pair<bool,Market_Action::Goods_data> MarketCore::StringToGoodsData(const string&
 }
 
 // 获取玩家资产
-int MarketCore::get_player_money(const endstone::Player& player) {
+int MarketCore::get_player_money(const endstone::Player& player) const
+{
     int buyer_money;
     if (dynamic_cast<FreeMarket&>(plugin_).getMoneyConfig() == "freemarket") {
         if (const auto buyer_data = dynamic_cast<FreeMarket&>(plugin_).getMarket().user_get(player.getUniqueId().str()); buyer_data.status) {
@@ -223,7 +228,8 @@ bool MarketCore::check_player_inventory_and_clear(endstone::Player& player, cons
 }
 
 // 检查是否允许触发事件
-bool MarketCore::canTriggerEvent(const string& playername) {
+bool MarketCore::canTriggerEvent(const string& playername) const
+{
     const auto now = std::chrono::steady_clock::now();
 
     if (dynamic_cast<FreeMarket&>(plugin_).getLastTriggerTime().contains(playername)) {

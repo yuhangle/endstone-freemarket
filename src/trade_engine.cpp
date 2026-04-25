@@ -5,10 +5,10 @@
 #include "menu_helpers.hpp"
 
 TradeResult TradeEngine::executePurchase(endstone::Player& buyer,
-                                          const Market_Action::Goods_data& goods_data) {
+                                          const Market_Action::Goods_data& goods_data) const
+{
     // Check goods still exists
-    auto latest_goods = dynamic_cast<FreeMarket&>(plugin_).getMarket().goods_get_by_gid(goods_data.gid);
-    if (!latest_goods.status) {
+    if (auto latest_goods = dynamic_cast<FreeMarket&>(plugin_).getMarket().goods_get_by_gid(goods_data.gid); !latest_goods.status) {
         return {false, "The item does not exist", "", ""};
     }
 
@@ -51,11 +51,11 @@ TradeResult TradeEngine::executePurchase(endstone::Player& buyer,
     return result;
 }
 
-TradeResult TradeEngine::purchaseWithMoney(endstone::Player& buyer,
+TradeResult TradeEngine::purchaseWithMoney(const endstone::Player& buyer,
                                             const Market_Action::Goods_data& goods_data,
-                                            const Market_Action::User_data& seller_data) {
-    int buyer_money = market_core_.get_player_money(buyer);
-    if (buyer_money < goods_data.price) {
+                                            const Market_Action::User_data& seller_data) const
+{
+    if (const int buyer_money = market_core_.get_player_money(buyer); buyer_money < goods_data.price) {
         return {false, "You have not enough money", "", ""};
     }
 
@@ -64,7 +64,7 @@ TradeResult TradeEngine::purchaseWithMoney(endstone::Player& buyer,
     (void)market_core_.general_change_money(seller_data.uuid, seller_data.playername, goods_data.price);
 
     // Give item to buyer
-    auto deserialized = ItemSerializer::deserialize(
+    const auto deserialized = ItemSerializer::deserialize(
         goods_data.item + "," + goods_data.data);
     auto itemStack = ItemSerializer::toItemStack(deserialized,
         plugin_.getServer().getItemFactory());
@@ -77,9 +77,10 @@ TradeResult TradeEngine::purchaseWithMoney(endstone::Player& buyer,
             "[Marketing Promotion] This good has been purchased: ", goods_data.name};
 }
 
-TradeResult TradeEngine::purchaseWithItems(endstone::Player& buyer,
+TradeResult TradeEngine::purchaseWithItems(const endstone::Player& buyer,
                                             const Market_Action::Goods_data& goods_data,
-                                            const Market_Action::User_data& seller_data) {
+                                            const Market_Action::User_data& seller_data) const
+{
     // Take payment items from buyer's inventory
     auto taken_items = takeItemsFromInventory(buyer, goods_data.money_type, goods_data.price);
     if (taken_items.empty()) {
@@ -87,7 +88,7 @@ TradeResult TradeEngine::purchaseWithItems(endstone::Player& buyer,
     }
 
     // Give purchased item to buyer
-    auto deserialized = ItemSerializer::deserialize(
+    const auto deserialized = ItemSerializer::deserialize(
         goods_data.item + "," + goods_data.data);
     auto itemStack = ItemSerializer::toItemStack(deserialized,
         plugin_.getServer().getItemFactory());
