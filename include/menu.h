@@ -47,6 +47,9 @@ public:
     // 商品查看菜单
     void goods_view_menu(endstone::Player& player, const Market_Action::Goods_data& goods_data);
 
+    // 物品栏查看菜单
+    void inventory_view_menu(endstone::Player& player, const Market_Action::Goods_data& goods_data);
+
     // 确认购买菜单
     void confirm_to_buy_menu(endstone::Player& player, const Market_Action::Goods_data& goods_data);
 

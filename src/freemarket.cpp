@@ -7,6 +7,7 @@
 #include <fstream>
 #include <filesystem>
 #include "string_utils.hpp"
+#include <inventoryui_init.h>
 
 ENDSTONE_PLUGIN("freemarket", FREEMARKET_PLUGIN_VERSION, FreeMarket)
 {
@@ -190,11 +191,14 @@ void FreeMarket::onEnable()
     translate::checkLanguageCommon(language_file_,data_path_+"/language/lang.json");
     //显示启动消息
     getLogger().info(endstone::ColorFormat::Yellow + "FreeMarket 插件已启动。版本：" + getServer().getPluginManager().getPlugin("freemarket")->getDescription().getVersion());
+    // 初始化 inventoryui (embedded mode)
+    inventoryui::initialize_embedded(*this);
 }
 
 void FreeMarket::onDisable()
 {
     getLogger().info("onDisable is called");
+    inventoryui::shutdown();
 }
 
 bool FreeMarket::onCommand(endstone::CommandSender &sender, const endstone::Command &command, const std::vector<std::string> &args)

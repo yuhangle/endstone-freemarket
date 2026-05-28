@@ -8,6 +8,8 @@
 #include "menu_helpers.hpp"
 #include "string_utils.hpp"
 #include "trade_engine.hpp"
+#include <endstone_inventoryui/inventoryui.h>
+#include <inventoryui_init.h>
 
 //通知菜单
 void Menu::notice_menu(endstone::Player& player,const string& msg,const std::function<void(endstone::Player&)>& yes_func) const
@@ -400,17 +402,39 @@ void Menu::goods_view_menu(endstone::Player& player, const Market_Action::Goods_
     confirm_buy.setIcon("textures/ui/confirm");
     confirm_buy.setOnClick([this, goods_data](endstone::Player* p) { confirm_to_buy_menu(*p, goods_data); });
 
+    endstone::Button inventory_view;
+    inventory_view.setText(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("View in inventory"));
+    inventory_view.setIcon("textures/ui/storageIconColor");
+    inventory_view.setOnClick([this, goods_data](endstone::Player* p) { inventory_view_menu(*p, goods_data); });
+
     if (seller_data.status) {
         endstone::Button seller_home_page;
         seller_home_page.setText(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("Seller homepage"));
         seller_home_page.setIcon(seller_data.avatar);
         seller_home_page.setOnClick([this, seller_data](endstone::Player* p) { seller_homepage(*p, seller_data); });
-        menu.setControls({seller_home_page, goods_info, buyer_info, confirm_buy});
+        menu.setControls({seller_home_page, goods_info, buyer_info, confirm_buy, inventory_view});
     } else {
-        menu.setControls({buyer_info, confirm_buy});
+        menu.setControls({buyer_info, confirm_buy, inventory_view});
     }
     menu.setOnClose([this](endstone::Player* p) { market_display_menu(*p); });
     player.sendForm(menu);
+}
+
+// 物品栏查看菜单
+void Menu::inventory_view_menu(endstone::Player& player, const Market_Action::Goods_data& goods_data) {
+    const auto item_data = ItemSerializer::deserialize(goods_data.item + "," + goods_data.data);
+    const auto item_stack = ItemSerializer::toItemStack(item_data, plugin_.getServer().getItemFactory());
+
+    const auto ui_menu = inventoryui::create_menu(inventoryui::MenuTypeId::CHEST, goods_data.name);
+    const auto inv = ui_menu->get_inventory();
+    inv->set_item(0, item_stack);
+
+    ui_menu->set_close_listener(
+        [this, goods_data, ui_menu](endstone::Player& p) {
+            goods_view_menu(p, goods_data);
+            (void)ui_menu.get();//延长指针生命
+        });
+    ui_menu->send_to(player);
 }
 
 // 确认购买菜单
@@ -423,8 +447,8 @@ void Menu::confirm_to_buy_menu(endstone::Player& player, const Market_Action::Go
 
     menu.setOnSubmit([this, goods_data](endstone::Player* p, int chose) {
         if (chose == 0) {
-            TradeEngine trade_engine(plugin_, market_core_, dynamic_cast<FreeMarket&>(plugin_).getTranslator());
-            auto result = trade_engine.executePurchase(*p, goods_data);
+            const TradeEngine trade_engine(plugin_, market_core_, dynamic_cast<FreeMarket&>(plugin_).getTranslator());
+            const auto result = trade_engine.executePurchase(*p, goods_data);
             if (result.success) {
                 notice_menu(*p, dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal(result.message_key),
                             [this](endstone::Player& p) { main_menu(p); });

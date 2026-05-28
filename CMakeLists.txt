@@ -32,6 +32,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nlohmann_json)
 
+# endstone-inventoryui-api (embedded static library)
+set(INVENTORYUI_BUILD_AS_STATIC ON)
+FetchContent_Declare(
+        endstone_inventoryui
+        GIT_REPOSITORY https://github.com/yuhangle/endstone-inventoryui-api.git
+        GIT_TAG main
+)
+FetchContent_MakeAvailable(endstone_inventoryui)
+
 file(GLOB PLUGIN_SOURCES
         CONFIGURE_DEPENDS
         "src/*.cpp"
@@ -104,4 +113,24 @@ target_link_libraries(${PROJECT_NAME}
         fmt::fmt-header-only
         nlohmann_json::nlohmann_json
         SQLite::SQLite3
+        endstone_inventoryui
 )
+
+# Release 优化
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    if(MSVC)
+        # MSVC: 允许重复符号
+        target_link_options(${PROJECT_NAME} PRIVATE /FORCE:MULTIPLE)
+    else()
+        # GCC/Clang: 函数分段 + GC 死代码消除
+        target_compile_options(${PROJECT_NAME} PRIVATE -ffunction-sections -fdata-sections)
+        target_link_options(${PROJECT_NAME} PRIVATE -Wl,--gc-sections -Wl,--allow-multiple-definition)
+    endif()
+endif()
+
+# Linux Release 构建后自动 strip
+if(CMAKE_BUILD_TYPE STREQUAL "Release" AND NOT MSVC)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+            COMMAND strip $<TARGET_FILE:${PROJECT_NAME}>
+            COMMENT "Stripping debug symbols from ${PROJECT_NAME}")
+endif()
