@@ -264,7 +264,13 @@ public:
         });
     }
 
-    // ================= 5. 自动修复工具 (新增) =================
+    // ================= 5. 潜影盒判断工具 =================
+
+    static bool isShulkerBox(const std::string& item_id) {
+        return item_id.find("_shulker_box") != std::string::npos;
+    }
+
+    // ================= 6. 自动修复工具 (新增) =================
 
     /**
      * @brief 检查并修复物品 NBT 中的类型错误

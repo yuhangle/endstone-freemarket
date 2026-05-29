@@ -5,6 +5,7 @@
 #include "menu.h"
 #include "freemarket.h"
 #include "item_serializer.hpp"
+#include "nbt_tool.hpp"
 #include "menu_helpers.hpp"
 #include "string_utils.hpp"
 #include "trade_engine.hpp"
@@ -472,11 +473,80 @@ void Menu::inventory_view_menu(endstone::Player& player, const Market_Action::Go
     const auto inv = ui_menu->get_inventory();
     inv->set_item(0, item_stack);
 
+    // 潜影盒点击回调：点击后打开新 UI 查看内部物品
+    if (NBTTools::isShulkerBox(item_data.item_id)) {
+        ui_menu->set_listener([this, item_stack, goods_data](
+            const endstone::Player& player1, const int slot,
+            const endstone::ItemStack&,
+            inventoryui::UIInventory&) -> std::function<void()> {
+            if (slot != 0) return {};
+            return [this, player_name = player1.getName(), item_stack, goods_data]() {
+                auto* p = plugin_.getServer().getPlayer(player_name);
+                if (!p) return;
+                shulker_view_menu(*p, item_stack, goods_data);
+            };
+        });
+    }
+
     ui_menu->set_close_listener(
         [this, goods_data](endstone::Player& p) {
             goods_view_menu(p, goods_data);
             //(void)ui_menu.get();//延长指针生命
         });
+    ui_menu->send_to(player);
+}
+
+// 潜影盒内容查看菜单
+void Menu::shulker_view_menu(endstone::Player& player, const endstone::ItemStack& shulker_item,
+                              const Market_Action::Goods_data& goods_data) {
+    const auto ui_menu = inventoryui::create_menu(inventoryui::MenuTypeId::CHEST, goods_data.name + ": " + std::string(shulker_item.getType().getId()));
+    const auto inv = ui_menu->get_inventory();
+
+    // 从 NBT 中提取 Items 列表（潜影盒）
+
+    if (const auto nbt = shulker_item.getNbt(); nbt.contains("Items") && nbt.at("Items").type() == endstone::nbt::Type::List) {
+        for (const auto& items_list = nbt.at("Items").get<endstone::ListTag>(); const auto& entry_tag : items_list) {
+            if (entry_tag.type() != endstone::nbt::Type::Compound) continue;
+            const auto& entry = entry_tag.get<endstone::CompoundTag>();
+
+            // 读取槽位（Byte 类型）
+            int slot = 0;
+            if (entry.contains("Slot") && entry.at("Slot").type() == endstone::nbt::Type::Byte) {
+                slot = entry.at("Slot").get<endstone::ByteTag>().value();
+            }
+
+            // 读取物品 ID 和数量
+            std::string inner_id;
+            int inner_count = 1;
+            if (entry.contains("Name") && entry.at("Name").type() == endstone::nbt::Type::String) {
+                inner_id = entry.at("Name").get<endstone::StringTag>().value();
+            }
+            if (entry.contains("Count") && entry.at("Count").type() == endstone::nbt::Type::Byte) {
+                inner_count = entry.at("Count").get<endstone::ByteTag>().value();
+            }
+
+            // 跳过空槽位
+            if (inner_id.empty() || inner_count <= 0) continue;
+
+            // 构造 ItemStack
+            if (!endstone::ItemType::get(inner_id)) continue;
+            endstone::ItemStack inner_stack(inner_id, inner_count);
+
+            // 设置自定义 NBT
+            if (entry.contains("tag") && entry.at("tag").type() == endstone::nbt::Type::Compound) {
+                inner_stack.setNbt(entry.at("tag").get<endstone::CompoundTag>());
+            }
+
+            if (slot >= 0 && slot < 27) {
+                inv->set_item(slot, inner_stack);
+            }
+        }
+    }
+
+    // 关闭时返回商品物品栏查看界面
+    ui_menu->set_close_listener([this, goods_data](endstone::Player& p) {
+        inventory_view_menu(p, goods_data);
+    });
     ui_menu->send_to(player);
 }
 
@@ -488,11 +558,10 @@ void Menu::confirm_to_buy_menu(endstone::Player& player, const Market_Action::Go
     menu.setButton2(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("No,I don't want to buy it"));
     menu.setContent(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("Confirm to buy it?"));
 
-    menu.setOnSubmit([this, goods_data](endstone::Player* p, int chose) {
+    menu.setOnSubmit([this, goods_data](endstone::Player* p, const int chose) {
         if (chose == 0) {
             const TradeEngine trade_engine(plugin_, market_core_, dynamic_cast<FreeMarket&>(plugin_).getTranslator());
-            const auto result = trade_engine.executePurchase(*p, goods_data);
-            if (result.success) {
+            if (const auto result = trade_engine.executePurchase(*p, goods_data); result.success) {
                 notice_menu(*p, dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal(result.message_key),
                             [this](endstone::Player& p) { main_menu(p); });
             } else {

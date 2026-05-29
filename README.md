@@ -1,6 +1,6 @@
 ![header](https://capsule-render.vercel.app/api?type=waving&height=300&color=gradient&text=Freemarket)
 
-> This plugin is still in the development phase. Some item data may be lost during transactions. Currently supported item data includes: item name, enchantments, lore, and item durability. Unsupported data includes shulker box contents, firework data, and more. Further support will depend on future API updates from Endstone.
+> This plugin now supports most item data preservation. Potion data is not yet supported and will be lost. Further support will depend on future updates.
 
 [简体中文](README_zh-CN.md)
 
@@ -38,7 +38,7 @@ The default configuration of the configuration file is as follows:
 }
 ```
 
-`money` is the name of the economy system used. The default is its own economy system, "freemarket". If you need to switch to the umoney plugin as the economy system, please change this value to "umoney". For a better experience when using umoney as the economy system, please additionally install a "money\_connext" plugin for communication between freemarket and umoney.
+`money` is the name of the economy system used. The default is its own economy system, "freemarket". If you need to switch to the umoney plugin as the economy system, please change this value to "umoney". For a better experience when using umoney as the economy system, please additionally install a "money\_connect" plugin for communication between freemarket and umoney.
 
 `player_max_goods` is the maximum number of items a player can list for sale simultaneously. When the number of items a player is currently listing reaches this value, they cannot list any more items.
 

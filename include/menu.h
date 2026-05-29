@@ -53,6 +53,10 @@ public:
     // 物品栏查看菜单
     void inventory_view_menu(endstone::Player& player, const Market_Action::Goods_data& goods_data);
 
+    // 潜影盒内容查看菜单
+    void shulker_view_menu(endstone::Player& player, const endstone::ItemStack& shulker_item,
+                           const Market_Action::Goods_data& goods_data);
+
     // 确认购买菜单
     void confirm_to_buy_menu(endstone::Player& player, const Market_Action::Goods_data& goods_data);
 

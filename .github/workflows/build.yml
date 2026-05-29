@@ -1,5 +1,8 @@
 name: Build Endstone Freemarket
 
+permissions:
+  contents: write
+
 on:
   workflow_dispatch:
     inputs:
@@ -27,11 +30,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-22.04, windows-latest]
-        # 只保留 os 维度
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -62,7 +64,7 @@ jobs:
       # ===== Windows =====
       - name: Set up MSVC
         if: runner.os == 'Windows'
-        uses: ilammy/msvc-dev-cmd@v1
+        uses: TheMrMilchmann/setup-msvc-dev@v4
         with:
           arch: x64
 
@@ -98,26 +100,22 @@ jobs:
       - name: Prepare plugin artifact (Linux)
         if: runner.os == 'Linux'
         run: |
-          SO_FILE=$(find build -name "*.so" | head -n 1)
-          if [ -z "$SO_FILE" ]; then
-            echo "No .so file found!"
+          if [ ! -f "build/endstone_freemarket.so" ]; then
+            echo "No endstone_freemarket.so found!"
             exit 1
-          fi
-          if [ "$SO_FILE" != "build/endstone_freemarket.so" ]; then
-            cp "$SO_FILE" build/endstone_freemarket.so
           fi
 
       # ===== Upload plugin artifact =====
       - name: Upload plugin artifact (Linux)
         if: runner.os == 'Linux'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: freemarket-linux-plugin
           path: build/endstone_freemarket.so
 
       - name: Upload plugin artifact (Windows)
         if: runner.os == 'Windows'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: freemarket-windows-plugin
           path: |
@@ -128,11 +126,9 @@ jobs:
     needs: build
     if: ${{ github.event.inputs.publish_release == 'true' }}
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -140,7 +136,7 @@ jobs:
         id: get_version
         run: |
           FILE_BASE_VERSION=$(grep -o 'set(BASE_VERSION "[^"]*")' CMakeLists.txt | cut -d'"' -f2)
-          
+
           if [ "${{ github.event.inputs.release_type }}" = "release" ]; then
             # === 正式发布 ===
             PROJECT_VERSION="${FILE_BASE_VERSION}"
@@ -148,32 +144,28 @@ jobs:
             RELEASE_TITLE="Release v${FILE_BASE_VERSION}"
           else
             # === 开发版本 (Alpha) ===
-          
+
             LAST_STABLE_TAG=$(git describe --tags --match="v[0-9]*" --exclude="*-*" --abbrev=0 2>/dev/null || echo "")
-          
+
             if [ -n "$LAST_STABLE_TAG" ]; then
-              # 如果找到了稳定版 Tag，计算从该 Tag 至今的 commit 数量
               GIT_COMMIT_COUNT=$(git rev-list --count "${LAST_STABLE_TAG}..HEAD")
             else
-              # 如果没找到任何稳定版 Tag，计算总 commit 数量
               GIT_COMMIT_COUNT=$(git rev-list --count HEAD)
             fi
-          
-            # 获取短哈希
+
             GIT_SHORT_HASH=$(git rev-parse --short HEAD)
-          
-            # 组合版本号
+
             PROJECT_VERSION="${FILE_BASE_VERSION}-alpha.${GIT_COMMIT_COUNT}+${GIT_SHORT_HASH}"
             TAG_VERSION="v${FILE_BASE_VERSION}-alpha.${GIT_COMMIT_COUNT}"
-            RELEASE_TITLE="Development Build ${TAG_VERSION}"
+            RELEASE_TITLE="Development Build ${PROJECT_VERSION}"
           fi
-          
+
           echo "VERSION=${PROJECT_VERSION}" >> $GITHUB_OUTPUT
           echo "TAG_VERSION=${TAG_VERSION}" >> $GITHUB_OUTPUT
           echo "RELEASE_TITLE=${RELEASE_TITLE}" >> $GITHUB_OUTPUT
 
       - name: Download all plugin artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: freemarket-*-plugin
           merge-multiple: false
@@ -206,11 +198,10 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          token: ${{ secrets.RELEASE_TOKEN }}
           tag_name: ${{ steps.get_version.outputs.TAG_VERSION }}
           name: ${{ steps.get_version.outputs.RELEASE_TITLE }}
           draft: false
           prerelease: ${{ github.event.inputs.release_type == 'development' }}
           files: artifacts/*.zip
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

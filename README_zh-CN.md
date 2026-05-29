@@ -2,7 +2,7 @@
 
  [English](README.md)
 
-> 此插件仍在开发阶段，部分物品数据在交易中会丢失，支持的物品数据为 物品命名 物品附魔 lore 物品耐久，不支持的数据有潜影盒物品数据 烟花数据等，等待endstone后续api更新。
+> 插件已基本支持大部分物品数据保留，药水数据暂不支持，会丢失，等待后续更新。
 
 ## 介绍
 
@@ -38,7 +38,7 @@ Freemarket为一款用于玩家间自由交易的插件，玩家可自主上架�
 }
 ```
 
-`money` 为使用的经济系统名，默认为自身经济系统freemarket。若需更换为umoney插件作为经济系统，请更改此处值为umoney，为了在使用umoney作为经济系统时有更好的体验，请额外安装一个money_connext插件用于freemarket与umoney通信。
+`money` 为使用的经济系统名，默认为自身经济系统freemarket。若需更换为umoney插件作为经济系统，请更改此处值为umoney，为了在使用umoney作为经济系统时有更好的体验，请额外安装一个money_connect插件用于freemarket与umoney通信。
 
 `player_max_goods` 为一个玩家能同时上架的最大商品量，当玩家当前正在上架商品的商品达到此值时，无法继续上架商品。
 
