@@ -157,5 +157,6 @@
   "Transaction Records": "交易记录",
   "No buy records": "没有买入记录",
   "No sell records": "没有卖出记录",
-  "Your inventory is full, please clear some space and try again": "你的背包已满,请清理出一些空间再试"
+  "Your inventory is full, please clear some space and try again": "你的背包已满,请清理出一些空间再试",
+  "Select item to upload": "选择物品以上传"
 }

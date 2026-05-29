@@ -39,16 +39,8 @@ ItemStackData ItemSerializer::deserialize(const std::string& str) {
     std::string remainder = string_utils::join(
         std::vector(tokens.begin() + 2, tokens.end()));
 
-    // Try as pure NBT first (starts with { or [)
-    if (!remainder.empty() && (remainder.front() == '{' || remainder.front() == '[')) {
-        if (auto nbt = NBTTools::stringToNbt(remainder); !nbt.empty()) {
-            data.nbt = nbt;
-            return data;
-        }
-        return {}; // NBT exists but parse failed -> corrupted
-    }
-
     // Legacy format: first 4 tokens = meta, rest = NBT
+    // Try legacy first since it's more specific (needs >= 4 extra tokens)
     if (tokens.size() - 2 >= 4) {
         std::vector meta_tokens(tokens.begin() + 2, tokens.begin() + 6);
         std::string nbt_str = string_utils::join(
@@ -90,7 +82,16 @@ ItemStackData ItemSerializer::deserialize(const std::string& str) {
             }
         }
     } else {
-        // Less than 4 fields, treat all as meta
+        // Less than 4 fields, try pure NBT first, then treat all as meta
+        if (!remainder.empty() && (remainder.front() == '{' || remainder.front() == '[')) {
+            if (auto nbt = NBTTools::stringToNbt(remainder); !nbt.empty()) {
+                data.nbt = nbt;
+                return data;
+            }
+            return {}; // NBT exists but parse failed -> corrupted
+        }
+
+        // Fallback: treat all remaining tokens as meta
         auto meta_str = string_utils::join(
             std::vector<std::string>(tokens.begin() + 2, tokens.end()));
         if (!meta_str.empty()) {

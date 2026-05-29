@@ -45,7 +45,8 @@ void Menu::main_menu(endstone::Player& player) {
         menu.addButton(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("§l§5Trading Market"),"textures/ui/teams_icon",[this](endstone::Player *p) {
             market_display_menu(*p);});
         menu.addButton(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("§l§5Add Items to Market"),"textures/ui/icon_blackfriday",[this](endstone::Player*p){
-            goods_upload_menu(*p);
+            //goods_upload_menu(*p);
+            goods_upload_inventory_menu(*p);
         });
         menu.addButton(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("§l§5Manage goods"),"textures/ui/icon_setting",[this](endstone::Player*p){
             choose_manage_goods_menu(*p);
@@ -210,7 +211,7 @@ void Menu::player_rename_menu(endstone::Player& player) {
     player.sendForm(menu);
 }
 
-//商品上传菜单
+//商品上传菜单(传统版本)
 void Menu::goods_upload_menu(endstone::Player& player) {
     if (const int player_goods_amount = dynamic_cast<FreeMarket&>(plugin_).getDatabase().getGoodsCountByUuid(player.getUniqueId().str()); player_goods_amount > dynamic_cast<FreeMarket&>(plugin_).getPlayerMaxGoods() || player_goods_amount < 0) {
         notice_menu(player,dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("You have reached the maximum limit for your goods"),[this](endstone::Player& p) { this->main_menu(p);});
@@ -222,8 +223,7 @@ void Menu::goods_upload_menu(endstone::Player& player) {
     auto hotbar_items = readPlayerHotbar(player);
     std::vector<std::string> hotbar_names;
     for (int i = 0; i < 9; i++) {
-        const auto& item = hotbar_items[i];
-        if (ItemSerializer::isValid(item)) {
+        if (const auto& item = hotbar_items[i]; ItemSerializer::isValid(item)) {
             hotbar_names.push_back(std::to_string(i+1) + ". " +
                 dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("Item ID: ") + item.item_id +
                 dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("Number: ") + std::to_string(item.item_num));
@@ -249,6 +249,48 @@ void Menu::goods_upload_menu(endstone::Player& player) {
         main_menu(*p);
     });
     player.sendForm(menu);
+}
+
+//商品上传菜单（物品栏版）
+void Menu::goods_upload_inventory_menu(endstone::Player& player) {
+    if (const int player_goods_amount = dynamic_cast<FreeMarket&>(plugin_).getDatabase().getGoodsCountByUuid(player.getUniqueId().str()); player_goods_amount > dynamic_cast<FreeMarket&>(plugin_).getPlayerMaxGoods() || player_goods_amount < 0) {
+        notice_menu(player,dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("You have reached the maximum limit for your goods"),[this](endstone::Player& p) { this->main_menu(p);});
+        return;
+    }
+
+    const auto ui_menu = inventoryui::create_menu(inventoryui::MenuTypeId::DOUBLE_CHEST,
+        dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("Select item to upload"));
+    const auto inv = ui_menu->get_inventory();
+
+    // 除装备栏的全部物品栏
+    for (int i = 0; i <= 35; i++) {
+        if (const auto item = player.getInventory().getItem(i)) {
+            inv->set_item(i, item.value());
+        }
+    }
+
+    // 设置物品点击回调
+    ui_menu->set_listener([this](const endstone::Player& player1, int slot, const endstone::ItemStack&, inventoryui::UIInventory&) -> std::function<void()> {
+        if (slot < 0 || slot > 35) return {};  // 处理未知领域
+
+        const auto real_item = player1.getInventory().getItem(slot);
+        if (!real_item || real_item->getAmount() <= 0) return {};
+
+        const auto item_data = ItemSerializer::fromItemStack(real_item.value());
+
+        // 延迟执行菜单打开
+        return [this, player_name = player1.getName(), item_data, slot]() {
+            auto* p = plugin_.getServer().getPlayer(player_name);
+            if (!p) return;
+            goods_upload_confirm_menu(*p, item_data, slot);
+        };
+    });
+
+    ui_menu->set_close_listener([this](endstone::Player& p) {
+        main_menu(p);
+    });
+
+    ui_menu->send_to(player);
 }
 
 void Menu::goods_upload_confirm_menu(endstone::Player& player, const ItemStackData& item_data, int quick_index) {
@@ -301,9 +343,9 @@ void Menu::goods_upload_confirm_menu(endstone::Player& player, const ItemStackDa
     // Tag options
     std::vector<std::string> tag_names;
     std::vector<std::string> tag_values;
-    for (const auto& preset : getTagPresets()) {
-        tag_names.push_back(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal(preset.name));
-        tag_values.push_back(preset.value);
+    for (const auto& [name, value] : getTagPresets()) {
+        tag_names.push_back(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal(name));
+        tag_values.push_back(value);
     }
     tag_drop.setLabel(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("Set goods tag"));
     tag_drop.setOptions(tag_names);
@@ -345,7 +387,8 @@ void Menu::goods_upload_confirm_menu(endstone::Player& player, const ItemStackDa
         plugin_.getServer().broadcastMessage("§l§2" + dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("[Marketing Promotion] New goods have been listed: ") + "§r" + the_title);
     });
     menu.setOnClose([this](endstone::Player*p){
-        goods_upload_menu(*p);
+        //goods_upload_menu(*p);
+        goods_upload_inventory_menu(*p);
     });
     player.sendForm(menu);
 }
@@ -430,9 +473,9 @@ void Menu::inventory_view_menu(endstone::Player& player, const Market_Action::Go
     inv->set_item(0, item_stack);
 
     ui_menu->set_close_listener(
-        [this, goods_data, ui_menu](endstone::Player& p) {
+        [this, goods_data](endstone::Player& p) {
             goods_view_menu(p, goods_data);
-            (void)ui_menu.get();//延长指针生命
+            //(void)ui_menu.get();//延长指针生命
         });
     ui_menu->send_to(player);
 }

@@ -38,6 +38,9 @@ public:
     // 商品上传菜单
     void goods_upload_menu(endstone::Player& player);
 
+    // 商品上传菜单（物品栏版）
+    void goods_upload_inventory_menu(endstone::Player& player);
+
     // 商品上传确认菜单
     void goods_upload_confirm_menu(endstone::Player& player, const ItemStackData& item_data, int quick_index);
 
