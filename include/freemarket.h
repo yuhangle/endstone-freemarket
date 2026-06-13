@@ -11,6 +11,8 @@
 #include <unordered_map>
 #include <chrono>
 #include <nlohmann/json.hpp>
+#include <money_connect/money_connect.h>
+#include <endstone/scheduler/task.h>
 using json = nlohmann::json;
 
 class FreeMarket : public endstone::Plugin {
@@ -25,7 +27,7 @@ public:
     [[nodiscard]] const std::string& getDataPath() const { return data_path_; }
     [[nodiscard]] const std::string& getDbFile() const { return db_file_; }
     [[nodiscard]] const std::string& getConfigPath() const { return config_path_; }
-    [[nodiscard]] const std::string& getUmoneyFile() const { return umoney_file_; }
+    [[nodiscard]] const std::shared_ptr<money_connect::EconomyService>& getEconomy() const { return economy_; }
 
     //数据目录和配置文件检查
     void datafile_check() const;
@@ -53,7 +55,9 @@ private:
     std::string data_path_ = "plugins/freemarket";
     std::string db_file_ = "plugins/freemarket/data.db";
     std::string config_path_ = "plugins/freemarket/config.json";
-    std::string umoney_file_ = "plugins/umoney/money.json";
+    std::shared_ptr<money_connect::EconomyService> economy_;
+    endstone::TaskId economy_task_id_ = 0;
+    int economy_retry_count_ = 0;
 
     // State
     std::string language_file_;

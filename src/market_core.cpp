@@ -10,75 +10,6 @@
 
 #include "string_utils.hpp"
 
-// 检查插件存在
-bool MarketCore::umoney_check_exists() const {
-    if (plugin_.getServer().getPluginManager().getPlugin("umoney")) {
-        return true;
-    }
-    return false;
-}
-
-//获取玩家资金
-int MarketCore::umoney_get_player_money(const std::string& player_name) const
-{
-    std::ifstream f(dynamic_cast<FreeMarket&>(plugin_).getUmoneyFile());
-    if (!f.is_open()) {
-        std::cerr << "Error: Could not open file: " << dynamic_cast<FreeMarket&>(plugin_).getUmoneyFile() << std::endl;
-        return -1;
-    }
-
-    try {
-        if (json data = json::parse(f); data.contains(player_name)) {
-            return data[player_name].get<int>();
-        }
-        std::cerr << "Warning: Player '" << player_name << "' not found in the data." << std::endl;
-        return 0;
-    } catch (const json::parse_error& e) {
-        std::cerr << "Error: JSON parse error in file '" << dynamic_cast<FreeMarket&>(plugin_).getUmoneyFile() << "': " << e.what() << std::endl;
-        return -1;
-    }
-}
-
-// 接入 umoney 相关实现
-bool MarketCore::umoney_change_player_money(const std::string& player_name, const int money) const {
-    std::ifstream ifs(dynamic_cast<FreeMarket&>(plugin_).getUmoneyFile());
-    if (!ifs.is_open()) {
-        std::cerr << "Error: Could not open file for reading: " << dynamic_cast<FreeMarket&>(plugin_).getUmoneyFile() << std::endl;
-        return false;
-    }
-    if (plugin_.getServer().getPluginManager().getPlugin("money_connect")) {
-        string command = "myct umoney change \"" + player_name + "\" " + to_string(money);
-        return plugin_.getServer().dispatchCommand(plugin_.getServer().getCommandSender(),command);
-    }
-    try {
-        json data = json::parse(ifs);
-        ifs.close();
-
-        if (data.contains(player_name)) {
-            data[player_name] = data[player_name].get<int>() + money;
-        } else {
-            data[player_name] = money;
-        }
-
-        std::ofstream ofs(dynamic_cast<FreeMarket&>(plugin_).getUmoneyFile());
-        if (!ofs.is_open()) {
-            std::cerr << "Error: Could not open file for writing: " << dynamic_cast<FreeMarket&>(plugin_).getUmoneyFile() << std::endl;
-            return false;
-        }
-        ofs << data.dump(4);
-        ofs.close();
-
-        return true;
-
-    } catch (const json::parse_error& e) {
-        std::cerr << "Error: JSON parse error in file '" << dynamic_cast<FreeMarket&>(plugin_).getUmoneyFile() << "': " << e.what() << std::endl;
-        return false;
-    } catch (const std::exception& e) {
-        std::cerr << "Error: An unexpected error occurred: " << e.what() << std::endl;
-        return false;
-    }
-}
-
 vector<ItemStackData> MarketCore::UserItemRead(const string& uuid) const
 {
     vector<ItemStackData> vec_itemData;
@@ -124,29 +55,38 @@ pair<bool,Market_Action::Goods_data> MarketCore::StringToGoodsData(const string&
 // 获取玩家资产
 int MarketCore::get_player_money(const endstone::Player& player) const
 {
-    int buyer_money;
-    if (dynamic_cast<FreeMarket&>(plugin_).getMoneyConfig() == "freemarket") {
-        if (const auto buyer_data = dynamic_cast<FreeMarket&>(plugin_).getMarket().user_get(player.getUniqueId().str()); buyer_data.status) {
-            buyer_money = buyer_data.money;
-        } else {
-            buyer_money = 0;
+    const auto& fm = dynamic_cast<FreeMarket&>(plugin_);
+    if (fm.getMoneyConfig() == "freemarket") {
+        if (const auto buyer_data = fm.getMarket().user_get(player.getUniqueId().str()); buyer_data.status) {
+            return buyer_data.money;
         }
-    } else {
-        buyer_money = umoney_get_player_money(player.getName());
+        return 0;
     }
-    return buyer_money;
+    // money_connect mode
+    if (auto& eco = fm.getEconomy(); eco) {
+        return static_cast<int>(eco->get_balance(player.getName()));
+    }
+    return 0;
 }
 
 // 通用转账系统
 bool MarketCore::general_change_money(const string& uuid,const string& playername,int money) const {
-    if (dynamic_cast<FreeMarket&>(plugin_).getMoneyConfig() == "freemarket") {
-        if (const auto buyer_data = dynamic_cast<FreeMarket&>(plugin_).getMarket().user_get(uuid); buyer_data.status) {
-            const auto [fst, snd] = dynamic_cast<FreeMarket&>(plugin_).getMarket().user_money(buyer_data.uuid,buyer_data.money + money);
+    const auto& fm = dynamic_cast<FreeMarket&>(plugin_);
+    if (fm.getMoneyConfig() == "freemarket") {
+        if (const auto buyer_data = fm.getMarket().user_get(uuid); buyer_data.status) {
+            const auto [fst, snd] = fm.getMarket().user_money(buyer_data.uuid,buyer_data.money + money);
             return fst;
         }
         return false;
     }
-    return umoney_change_player_money(playername,money);
+    // money_connect mode
+    if (auto& eco = fm.getEconomy(); eco) {
+        if (money >= 0) {
+            return eco->add_balance(playername, money);
+        }
+        return eco->remove_balance(playername, -money);
+    }
+    return false;
 }
 
 // 检查玩家快捷物品栏中资产并清除

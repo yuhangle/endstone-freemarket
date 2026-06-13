@@ -6,7 +6,7 @@
 
 ## 介绍
 
-Freemarket为一款用于玩家间自由交易的插件，玩家可自主上架商品，在市场界面浏览其他玩家的商品并购买，其自带一个经济系统，也支持使用umoney作为经济系统。
+Freemarket为一款用于玩家间自由交易的插件，玩家可自主上架商品，在市场界面浏览其他玩家的商品并购买，其自带一个经济系统，也支持通过 [money\_connect](https://github.com/yuhangle/endstone-money-connect) 插件接入外部经济系统（UMoney、JSONMoney、JWEconomy）。
 
 ## 如何使用
 
@@ -38,7 +38,7 @@ Freemarket为一款用于玩家间自由交易的插件，玩家可自主上架�
 }
 ```
 
-`money` 为使用的经济系统名，默认为自身经济系统freemarket。若需更换为umoney插件作为经济系统，请更改此处值为umoney，为了在使用umoney作为经济系统时有更好的体验，请额外安装一个money_connect插件用于freemarket与umoney通信。
+`money` 为使用的经济系统名，默认为自身经济系统freemarket。若需使用外部经济系统（UMoney、JSONMoney、JWEconomy），请安装 [money_connect](https://github.com/yuhangle/endstone-money-connect) 插件并将此处值更改为"money_connect"。经济服务采用懒加载机制，每2秒轮询一次直到服务可用，5次重试失败后自动回退到内置经济系统。
 
 `player_max_goods` 为一个玩家能同时上架的最大商品量，当玩家当前正在上架商品的商品达到此值时，无法继续上架商品。
 

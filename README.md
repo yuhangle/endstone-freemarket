@@ -38,7 +38,7 @@ The default configuration of the configuration file is as follows:
 }
 ```
 
-`money` is the name of the economy system used. The default is its own economy system, "freemarket". If you need to switch to the umoney plugin as the economy system, please change this value to "umoney". For a better experience when using umoney as the economy system, please additionally install a "money\_connect" plugin for communication between freemarket and umoney.
+`money` is the name of the economy system used. The default is its own economy system, "freemarket". If you need to use an external economy system (UMoney, JSONMoney, JWEconomy), please install [money_connect](https://github.com/yuhangle/endstone-money-connect) plugin and change this value to "money_connect". The economy service is loaded lazily — it polls every 2 seconds until the service is available, and falls back to the built-in economy after 5 failed retries.
 
 `player_max_goods` is the maximum number of items a player can list for sale simultaneously. When the number of items a player is currently listing reaches this value, they cannot list any more items.
 

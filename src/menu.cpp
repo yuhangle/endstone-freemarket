@@ -131,7 +131,11 @@ void Menu::account_menu(endstone::Player& player) {
     if (dynamic_cast<FreeMarket&>(plugin_).getMoneyConfig() == "freemarket") {
         money = user_data.money;
     } else {
-        money = market_core_.umoney_get_player_money(player.getName());
+        if (auto& eco = dynamic_cast<FreeMarket&>(plugin_).getEconomy(); eco) {
+            money = static_cast<int>(eco->get_balance(player.getName()));
+        } else {
+            money = 0;
+        }
     }
     menu.setContent(dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("User name: ") + user_data.username + "\n" + endstone::ColorFormat::Green +dynamic_cast<FreeMarket&>(plugin_).getTranslator().getLocal("Money: ") + to_string(money));
     player.sendForm(menu);

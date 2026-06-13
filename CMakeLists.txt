@@ -4,7 +4,7 @@ project(freemarket CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(BASE_VERSION "0.2.1")
+set(BASE_VERSION "0.2.2")
 if(WIN32)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc /utf-8")
 endif()
@@ -41,6 +41,14 @@ FetchContent_Declare(
         #SOURCE_DIR /home/yuhang/Documents/item/endstone-c/endstone-inventoryui
 )
 FetchContent_MakeAvailable(endstone_inventoryui)
+
+# endstone-money-connect (header-only economy service interface)
+FetchContent_Declare(
+        endstone_money_connect
+        GIT_REPOSITORY https://github.com/yuhangle/endstone-money-connect.git
+        GIT_TAG main
+)
+FetchContent_MakeAvailable(endstone_money_connect)
 
 file(GLOB PLUGIN_SOURCES
         CONFIGURE_DEPENDS
@@ -115,6 +123,7 @@ target_link_libraries(${PROJECT_NAME}
         nlohmann_json::nlohmann_json
         SQLite::SQLite3
         endstone_inventoryui
+        endstone_money_connect
 )
 
 # Release 优化

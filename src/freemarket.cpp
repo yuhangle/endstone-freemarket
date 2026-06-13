@@ -161,15 +161,35 @@ void FreeMarket::onEnable()
             money_config_ = json_msg["money"];
             player_max_goods_ = json_msg["player_max_goods"];
             lang = json_msg["language"];
-            if (json_msg["money"] == "umoney") {
-                if (!market_core_->umoney_check_exists()) {
-                    money_config_ = "freemarket";
-                    getLogger().error(translator_.getLocal("Umoney plugin not find,use freemarket economy system"));
-                }
-                else {
-                    money_config_ = "umoney";
-                    getLogger().info(translator_.getLocal("Use umoney plugin"));
-                }
+            if (json_msg["money"] == "money_connect") {
+                money_config_ = "money_connect";
+                economy_retry_count_ = 0;
+                // 懒加载：定时查找 MoneyConnect 服务，每 40 ticks (2秒) 执行一次
+                getLogger().info(translator_.getLocal("MoneyConnect service lazy loading started"));
+                const auto task = getServer().getScheduler().runTaskTimer(
+                    *this,
+                    [this]() {
+                        economy_ = getServer().getServiceManager().load<money_connect::EconomyService>("MoneyConnect");
+                        if (economy_) {
+                            getLogger().info(translator_.getLocal("Use money_connect economy system") + ": " + economy_->get_name());
+                            if (economy_task_id_ != 0) {
+                                getServer().getScheduler().cancelTask(economy_task_id_);
+                                economy_task_id_ = 0;
+                            }
+                            return;
+                        }
+                        economy_retry_count_++;
+                        if (economy_retry_count_ >= 5) {
+                            getLogger().error(translator_.getLocal("MoneyConnect service not found after 5 retries, using freemarket economy system"));
+                            money_config_ = "freemarket";
+                            getServer().getScheduler().cancelTask(economy_task_id_);
+                            economy_task_id_ = 0;
+                        }
+                    },
+                    0,   // 立即开始
+                    40   // 每 40 ticks (2秒) 执行一次
+                );
+                economy_task_id_ = task->getTaskId();
             } else {
                 money_config_ = "freemarket";
                 getLogger().info(endstone::ColorFormat::Yellow+translator_.getLocal("Use freemarket economy system"));
@@ -198,6 +218,11 @@ void FreeMarket::onEnable()
 void FreeMarket::onDisable()
 {
     getLogger().info("onDisable is called");
+    // 取消经济服务懒加载任务
+    if (economy_task_id_ != 0) {
+        getServer().getScheduler().cancelTask(economy_task_id_);
+        economy_task_id_ = 0;
+    }
     inventoryui::shutdown();
 }
 

@@ -15,14 +15,6 @@ class FreeMarket; // 前向声明
 class MarketCore {
 public:
     explicit MarketCore(endstone::Plugin &plugin) :plugin_(plugin) {};
-    //接入 umoney
-
-    //检查插件存在
-    [[nodiscard]] bool umoney_check_exists() const;
-    //获取玩家资金
-    [[nodiscard]] int umoney_get_player_money(const std::string& player_name) const;
-    //更改玩家资金
-    [[nodiscard]] bool umoney_change_player_money(const std::string& player_name, int money) const;
 
     //读取玩家可提现物品
     [[nodiscard]] vector<ItemStackData> UserItemRead(const string& uuid) const;
