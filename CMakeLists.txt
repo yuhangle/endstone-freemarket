@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.15)
 
 project(freemarket CXX)
 
+
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(BASE_VERSION "0.2.3")
