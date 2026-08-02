@@ -49,6 +49,12 @@ jobs:
         with:
           arch: x64
 
+      - name: Set up LLVM/Clang
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install llvm -y --no-progress
+
       - name: Set up CMake and Ninja
         if: runner.os == 'Windows'
         uses: lukka/get-cmake@latest
@@ -66,6 +72,8 @@ jobs:
         shell: pwsh
         run: |
           cmake -G Ninja -B build -DCMAKE_BUILD_TYPE=Release `
+            -DCMAKE_C_COMPILER=clang-cl `
+            -DCMAKE_CXX_COMPILER=clang-cl `
             -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows-static
 
