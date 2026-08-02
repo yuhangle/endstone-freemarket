@@ -37,7 +37,7 @@ void FreeMarket::datafile_check() const {
     json df_config = {
             {"language","zh_CN"},
             {"money", "freemarket"},
-            {"player_max_goods_", 10}
+            {"player_max_goods", 10}
     };
 
     if (!(std::filesystem::exists(data_path_))) {
