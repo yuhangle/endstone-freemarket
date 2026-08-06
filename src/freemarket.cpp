@@ -110,11 +110,6 @@ void FreeMarket::onLoad()
         getLogger().info("No data path,auto create");
         filesystem::create_directory(data_path_);
     }
-    //加载语言
-    language_file_ = data_path_ + "/language/" + getServer().getLanguage().getLocale();
-    translator_ = translate(language_file_);
-    const auto [fst, snd] = translator_.loadLanguage();
-    getLogger().info(snd);
     #ifdef __linux__
     namespace fs = std::filesystem;
     try {
@@ -145,6 +140,12 @@ void FreeMarket::onLoad()
 void FreeMarket::onEnable()
 {
     getLogger().info("onEnable is called");
+    //加载语言
+    language_file_ = data_path_ + "/language/" + getServer().getLanguage().getLocale();
+    translator_ = translate(language_file_);
+    const auto [fst, snd] = translator_.loadLanguage();
+    getLogger().info(snd);
+
     datafile_check();
     if (!DataBase::fileExists(db_file_)) {
         getLogger().info(endstone::ColorFormat::Yellow + translator_.getLocal("Database file not find,auto create"));
