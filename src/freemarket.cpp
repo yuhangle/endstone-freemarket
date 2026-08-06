@@ -110,31 +110,9 @@ void FreeMarket::onLoad()
         getLogger().info("No data path,auto create");
         filesystem::create_directory(data_path_);
     }
-    #ifdef __linux__
-    namespace fs = std::filesystem;
-    try {
-        // 获取当前路径
-        const fs::path currentPath = fs::current_path();
-
-        // 子目录路径
-        const fs::path subdir = "plugins/freemarket/data.db";
-
-        // 拼接路径
-        const fs::path fullPath = currentPath / subdir;
-
-        // 如果需要将最终路径转换为 string 类型
-        const std::string finalPathStr = fullPath.string();
-        // 使用完整路径初始化
-        database_ = std::make_unique<DataBase>(finalPathStr);
-        market_ = std::make_unique<Market_Action>(*database_);
-    }
-    catch (const fs::filesystem_error& e) {
-        std::cerr << "Filesystem error: " << e.what() << std::endl;
-    }
-    catch (const std::exception& e) {
-        std::cerr << "General error: " << e.what() << std::endl;
-    }
-    #endif
+    // 初始化数据库与市场操作对象
+    database_ = std::make_unique<DataBase>(db_file_);
+    market_ = std::make_unique<Market_Action>(*database_);
 }
 
 void FreeMarket::onEnable()
