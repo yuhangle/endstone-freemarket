@@ -81,11 +81,15 @@ TradeResult TradeEngine::purchaseWithItems(const endstone::Player& buyer,
                                             const Market_Action::Goods_data& goods_data,
                                             const Market_Action::User_data& seller_data) const
 {
-    // Take payment items from buyer's inventory
-    auto taken_items = takeItemsFromInventory(buyer, goods_data.money_type, goods_data.price);
-    if (taken_items.empty()) {
+    // Verify the buyer has enough payment items BEFORE taking anything out of
+    // their inventory. Otherwise an insufficient balance would still proceed
+    // with the transaction after taking only the available items.
+    if (!playerHasItemCount(buyer, goods_data.money_type, goods_data.price)) {
         return {false, "You have not enough money", "", ""};
     }
+
+    // Take payment items from buyer's inventory (now guaranteed sufficient)
+    const auto taken_items = takeItemsFromInventory(buyer, goods_data.money_type, goods_data.price);
 
     // Give purchased item to buyer
     const auto deserialized = ItemSerializer::deserialize(
